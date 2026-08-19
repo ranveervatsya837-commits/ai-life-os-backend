@@ -10,3 +10,5 @@
 patient_*.pdf
 patients_export.csv
 
+database.db
+profile.json
