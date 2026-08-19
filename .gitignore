@@ -1,0 +1,12 @@
+.venv/
+**pycache**/
+*.pyc
+
+.idea/
+.vscode/
+
+.env
+
+patient_*.pdf
+patients_export.csv
+
