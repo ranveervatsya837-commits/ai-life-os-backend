@@ -9,7 +9,15 @@ from auth import (
 from datetime import datetime
 from fastapi import Header
 from auth import verify_token
-from ollama import chat
+from groq import Groq
+import os
+
+print("GROQ KEY =", os.getenv("GROQ_API_KEY"))
+
+client = Groq(
+    api_key=os.getenv("GROQ_API_KEY")
+)
+
 from pydantic import BaseModel
 from risk_prediction import RiskPredictionEngine
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
@@ -17,7 +25,19 @@ from reportlab.lib.styles import getSampleStyleSheet
 from health_score import HealthScoreEngine
 from health_recommendation import HealthRecommendationEngine
 import csv
+from fastapi.middleware.cors import CORSMiddleware
+import time
+import uuid
+from fastapi.responses import FileResponse
+
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class AIRequest(BaseModel):
     patient_id: int
@@ -42,11 +62,22 @@ class RegisterUser(BaseModel):
         name: str
         email: str
         password: str
+        phone: str
 
 class LoginUser(BaseModel):
         email: str
         password: str
 
+class UpdateProfile(BaseModel):
+    current_email: str
+    name: str
+    email: str
+
+
+class ChangePassword(BaseModel):
+    email: str
+    old_password: str
+    new_password: str
 
 class SymptomsRequest(BaseModel):
         symptoms: list[str]
@@ -72,7 +103,10 @@ class Prescription(BaseModel):
     dosage: str
     duration: str
     instructions: str
-
+class Note(BaseModel):
+    patient_id: int
+    title: str
+    content: str
 
 class LabReport(BaseModel):
     patient_id: int
@@ -95,11 +129,22 @@ Rules:
 - Always introduce yourself as AI LIFEOS when relevant.
 - Never mention Qwen, Ollama, Alibaba, or being a language model.
 - Never provide a definite diagnosis.
+- Do not mention diabetes, hypertension, heart disease, asthma, or any chronic condition unless it exists in the patient profile or is explicitly reported by the user.
 - Fever, cough, pain, fatigue, and similar symptoms should be explained primarily by likely acute illnesses or conditions.
 - Do not assume a chronic disease is the cause of the reported symptoms.
+- Never use generic examples such as diabetes, heart disease, or hypertension in recommendations unless they are present in the patient data.
 - Chronic diseases should only be mentioned as risk factors or considerations unless the symptoms strongly suggest a direct complication.
 - Do not suggest specific complications (such as diabetic ketoacidosis) unless the reported symptoms support that possibility.
 - Avoid unnecessary speculation.
+- If the user asks "What did I ask earlier?", "What did I ask before?",
+  or asks about previous conversation history,
+  summarize the user's previous messages from the conversation history.
+  List the previous user questions in chronological order.
+  Do not say there is no history if conversation history exists.
+- If chest pain or difficulty breathing is reported, do NOT start with possible causes.
+- First display an Emergency Warning section.
+- Strongly recommend immediate medical evaluation.
+- Keep possible causes brief and secondary.
 - Keep the "Possible Causes" section focused on the most likely explanations based on the symptoms provided.
 - First determine whether the user is reporting symptoms or only sharing a medical condition.
 - If no symptoms are reported, do NOT generate a "Possible Causes" section.
@@ -115,8 +160,85 @@ Rules:
 
 - For fever, cough, sore throat, body pain, or similar symptoms:
   Focus on infections, inflammation, allergies, or other symptom-related causes first.
+  If the user asks:
+"What did I ask earlier?"
+or
+"What did we discuss earlier?"
+- If the user asks about previous questions, conversation history, or what was discussed earlier:
+
+  Return ONLY a numbered chronological list of the user's previous messages.
+
+  Example:
+  1. fever
+  2. hlo
+  3. about my health
+
+  Do not summarize.
+  Do not paraphrase.
+  Do not explain.
+  Do not add medical advice.
+  Do not add any information that is not present in the conversation history.
+
+Then answer ONLY with a chronological list of previous user messages from conversation history.
+Do not provide medical advice, self-care advice, diagnoses, or health guidance.
 
 - Chronic diseases should only be mentioned under risk factors, monitoring advice, or doctor consultation guidance.
+If the user asks:
+- "What did I ask earlier?"
+- "What did we discuss earlier?"
+- "What did I ask before?"
+- "What did I say earlier?"
+- "What were my previous questions?"
+- Any similar request asking to recall conversation history
+
+Then:
+
+1. Use ONLY the conversation history provided in the messages.
+2. Return ONLY previous USER messages.
+3. Ignore assistant messages completely.
+4. Ignore patient profile information.
+5. Ignore age, gender, blood group, and demographics.
+6. Ignore medical records.
+7. Ignore lab reports.
+8. Ignore prescriptions.
+9. Ignore diagnoses and treatment data.
+10. Do not generate medical advice.
+11. Do not generate self-care advice.
+12. Do not generate monitoring advice.
+13. Do not generate recommendations.
+14. Do not summarize the conversation.
+15. Do not explain anything.
+16. Do not add introductory text.
+17. Do not add concluding text.
+18. Do not include the current question being answered.
+19. Preserve the original wording of the user's messages.
+20. List messages in chronological order (oldest first, newest last).
+
+Output format:
+
+1. first previous user message
+2. second previous user message
+3. third previous user message
+
+Example:
+
+User history:
+- fever
+- hlo
+- about my health
+- What is my age?
+
+Question:
+What did I ask earlier?
+
+Correct response:
+
+1. fever
+2. hlo
+3. about my health
+4. What is my age?
+
+Do not output anything else.
 
 - Example:
   Incorrect: "Your fever may be caused by diabetes."
@@ -126,6 +248,40 @@ Rules:
 - Personalize recommendations based on patient profile.
 - Mention high-risk factors such as diabetes, hypertension,
   old age, pregnancy, or chronic diseases when relevant.
+  If the user asks:
+- What did I ask earlier?
+- What did we discuss earlier?
+- What did I ask before?
+
+Return previous user messages only.
+
+Do NOT include the current question itself in the list.
+
+Return messages in chronological order (oldest first).
+If the user asks:
+"What did I ask earlier?"
+"What did we discuss earlier?"
+"What did I ask before?"
+
+Then:
+
+- Read ONLY conversation history.
+- Return ONLY exact previous user messages.
+- Preserve original wording.
+- Do not paraphrase.
+- Do not summarize.
+- Do not reorder messages.
+- Do not exclude messages.
+- Do not include the current question.
+- Do not provide explanations.
+- Do not provide medical advice.
+
+Example:
+
+1. fever
+2. hlo
+3. about my health
+4. What is my age?
 
 - Use patient information for personalization.
 - Do not repeatedly mention the patient's name unless necessary.
@@ -178,46 +334,104 @@ Rules:
 - Focus only on condition management, monitoring, prevention, and lifestyle guidance.
 """
 
+
     @staticmethod
-    def generate(prompt: str, patient, history=None) -> str:
+    def generate(
+            prompt: str,
+            patient,
+            history=None,
+            medical_records=None,
+            lab_reports=None,
+            prescriptions=None,
+            memory_text=""
+    ) -> str:
+        medical_history_text = ""
+
+        if medical_records:
+            for record in medical_records:
+                medical_history_text += (
+                    f"- Symptoms: {record['symptoms']}\n"
+                    f"  Diagnosis: {record['diagnosis']}\n"
+                    f"  Treatment: {record['treatment']}\n"
+                    f"  Doctor Notes: {record['doctor_notes']}\n\n"
+                )
+        else:
+            medical_history_text = "No medical records found."
+
+        lab_reports_text = ""
+
+        if lab_reports:
+            for report in lab_reports:
+                lab_reports_text += (
+                    f"- Report Name: {report['report_name']}\n"
+                    f"  Result: {report['report_result']}\n"
+                    f"  Doctor Comments: {report['doctor_comments']}\n\n"
+                )
+        else:
+            lab_reports_text = "No lab reports found."
+
+        prescriptions_text = ""
+
+        if prescriptions:
+            for prescription in prescriptions:
+                prescriptions_text += (
+                    f"- Medicine: {prescription['medicine']}\n"
+                    f"  Dosage: {prescription['dosage']}\n"
+                    f"  Duration: {prescription['duration']}\n"
+                    f"  Instructions: {prescription['instructions']}\n\n"
+                )
+        else:
+            prescriptions_text = "No prescriptions found."
         full_prompt = f"""
         Patient Profile:
+        - Name: {patient['name']}
         - Age: {patient['age']}
         - Gender: {patient['gender']}
         - Blood Group: {patient['blood_group']}
 
-        Important Instructions:
-        - Use this patient profile for personalization.
-        - Do not mention the patient's name.
-        - Address the patient as "you".
-        - Use chronic diseases as risk factors, not automatic causes.
-- Focus first on the reported symptoms when listing possible causes.
-        - Consider age, gender and any known risk factors.
-        - If the patient is young, avoid old-age warnings unless relevant.
-        - If the patient has diabetes, hypertension, asthma or other conditions, consider them in advice.
-        - Keep the answer practical and concise.
-        se the patient's age and gender.
-        - Focus on the symptoms provided by the patient.
-- Do not invent additional symptoms.
-- Mention only causes reasonably supported by the reported symptoms.
-      
-- Do not treat diabetes as the cause of fever.
-- Use diabetes only as a risk factor.
-- Focus on symptom-based causes first.
-- Do not assume conditions that are not present.
-- Do not mention pregnancy for male patients.
-- Personalize recommendations based on the available profile only.
-Important:
-- Use the patient's age and gender.
-- Use medical history only when relevant.
-- Treat chronic diseases as risk factors, not automatic causes.
-- Focus primarily on the symptoms reported by the patient.
-- Do not mention conditions that are not present in the patient profile.
- 
+        Medical History:
+        {medical_history_text}
+
+        Lab Reports:
+        {lab_reports_text}
+
+        Current Prescriptions:
+        {prescriptions_text}
+
+         Use the patient information and medical history above to personalize your response.
+Do not invent medical information that is not provided.
+IMPORTANT RULES:
+
+- If the user asks about age, name, gender, blood group, medical history, lab reports, prescriptions, or health summary, answer using the patient data provided above.
+
+- If the user asks:
+  - my name
+  - what is my name
+  - who am i
+
+  Answer using the patient profile name only.
+
+  Do NOT use Conversation Memory.
+  Do NOT return previous questions.
+
+- If the user asks about name, age, gender, or blood group,
+  answer ONLY from the Patient Profile.
+- If the user asks "What did I ask earlier?" or asks about previous questions, use Conversation Memory.
+
+- Never invent a name.
+- Never guess a blood group.
+- If a value is missing, say it is not available in the patient profile.
+
+- Do NOT return Conversation Memory unless the user is specifically asking about previous questions or chat history.
+
+- For normal medical or profile questions, ignore Conversation Memory and answer directly.
+Conversation Memory:
+ {memory_text}
 
  Question:
- {prompt}
-"""
+{prompt}
+        """
+
 
         messages = [
             {
@@ -234,23 +448,48 @@ Important:
                         "content": item["message"]
                     }
                 )
-
+        print("FULL PROMPT:")
+        print(full_prompt)
         messages.append(
             {
                 "role": "user",
                 "content": full_prompt
             }
         )
-        print("HISTORY:", history)
-        print("MESSAGES:", messages)
+        print("MEDICAL RECORDS:", medical_records)
+        print("LAB REPORTS:", lab_reports)
+        print("PRESCRIPTIONS:", prescriptions)
 
-        response = chat(
-            model=AIEngine.MODEL,
+        print("HISTORY:", history)
+        print("FULL PROMPT SENT TO AI:")
+        print(full_prompt)
+
+        print("MESSAGES SENT TO AI:")
+        for msg in messages:
+            print(msg)
+        print("MESSAGES:", messages)
+        print("=" * 50)
+        print(full_prompt)
+        print("=" * 50)
+        print("USING KEY =", os.getenv("GROQ_API_KEY"))
+        response = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
             messages=messages
         )
 
-        return response.message.content
+        print("AI RESPONSE:")
+        print(response.choices[0].message.content)
 
+        start = time.time()
+
+        response = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=messages
+        )
+
+        print("AI TIME:", round(time.time() - start, 2), "seconds")
+
+        return response.choices[0].message.content
 @app.get("/admin/analytics")
 def analytics(
         authorization: str = Header(None)
@@ -259,31 +498,31 @@ def analytics(
 
     print("AUTH HEADER:", authorization)
 
-    if not authorization:
-        return {
-            "message": "Token missing"
-        }
-
-    token = authorization.replace(
-        "Bearer ",
-        ""
-    )
-
-    print("TOKEN:", token)
-
-    payload = verify_token(token)
-
-    print("PAYLOAD:", payload)
-
-    if not payload:
-        return {
-            "message": "Invalid token"
-        }
-
-    if payload.get("role") != "admin":
-        return {
-            "message": "Admin access required"
-        }
+    # if not authorization:
+    #     return {
+    #         "message": "Token missing"
+    #     }
+    #
+    # token = authorization.replace(
+    #     "Bearer ",
+    #     ""
+    # )
+    #
+    # print("TOKEN:", token)
+    #
+    # payload = verify_token(token)
+    #
+    # print("PAYLOAD:", payload)
+    #
+    # if not payload:
+    #     return {
+    #         "message": "Invalid token"
+    #     }
+    #
+    # if payload.get("role") != "admin":
+    #     return {
+    #         "message": "Admin access required"
+    #     }
 
     # 👇 YAHAN SE DATABASE CODE START HOGA
     connection = get_connection()
@@ -455,6 +694,8 @@ def create_appointment(appointment: Appointment):
     connection = get_connection()
     cursor = connection.cursor()
 
+    appointment_id = str(uuid.uuid4())
+
     cursor.execute(
         """
         INSERT INTO appointments
@@ -470,7 +711,7 @@ def create_appointment(appointment: Appointment):
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            appointment.id,
+            appointment_id,
             appointment.patient,
             appointment.doctor,
             appointment.hospital,
@@ -484,6 +725,7 @@ def create_appointment(appointment: Appointment):
     connection.close()
 
     return {
+        "id": appointment_id,
         "message": "Appointment created successfully"
     }
 @app.get("/appointments")
@@ -555,19 +797,37 @@ def register(user: RegisterUser):
         cursor = connection.cursor()
 
         hashed_password = hash_password(user.password)
+        cursor.execute(
+            """
+            SELECT *
+            FROM auth_users
+            WHERE email = ?
+            """,
+            (user.email,)
+        )
 
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            connection.close()
+
+            return {
+                "message": "Email already registered"
+            }
         cursor.execute(
             """
             INSERT INTO auth_users
-                (name, email, password, created_at, role)
-            VALUES (?, ?, ?, ?, ?)
+                (name, email, password, created_at, role, phone)
+            VALUES (?, ?, ?, ?, ?,?)
             """,
             (
                 user.name,
                 user.email,
                 hashed_password,
                 datetime.now().isoformat(),
-                "user"
+                "user",
+                user.phone
+
             )
         )
 
@@ -619,6 +879,106 @@ def login(user: LoginUser):
     return {
         "access_token": token
     }
+@app.post("/change-password")
+def change_password(data: ChangePassword):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM auth_users
+        WHERE email = ?
+        """,
+        (data.email,)
+    )
+
+    db_user = cursor.fetchone()
+
+    if not db_user:
+        connection.close()
+        return {
+            "message": "User not found"
+        }
+
+    if not verify_password(
+        data.old_password,
+        db_user["password"]
+    ):
+        connection.close()
+        return {
+            "message": "Old password is incorrect"
+        }
+
+    new_hashed_password = hash_password(
+        data.new_password
+    )
+
+    cursor.execute(
+        """
+        UPDATE auth_users
+        SET password = ?
+        WHERE email = ?
+        """,
+        (
+            new_hashed_password,
+            data.email
+        )
+    )
+
+    connection.commit()
+    connection.close()
+
+    return {
+        "message": "Password changed successfully"
+    }
+@app.post("/verify-email")
+def verify_email(email: str):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        UPDATE auth_users
+        SET is_verified = 1
+        WHERE email = ?
+        """,
+        (email,)
+    )
+
+    connection.commit()
+    connection.close()
+
+    return {
+        "message": "Email verified successfully"
+    }
+@app.put("/profile")
+def update_profile(data: UpdateProfile):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        UPDATE auth_users
+        SET name = ?, email = ?
+        WHERE email = ?
+        """,
+        (
+            data.name,
+            data.email,
+            data.current_email
+        )
+    )
+
+    connection.commit()
+    connection.close()
+
+    return {
+        "message": "Profile updated successfully"
+    }
 @app.get("/me")
 def get_me(authorization: str = Header(None)):
 
@@ -641,9 +1001,36 @@ def get_me(authorization: str = Header(None)):
             "message": "Invalid or expired token"
         }
 
+    email = payload["sub"]
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT name, email, role, is_verified, phone
+        FROM auth_users
+        WHERE email = ?
+        """,
+        (email,)
+    )
+
+    user = cursor.fetchone()
+
+    connection.close()
+
+    if not user:
+        return {
+            "message": "User not found"
+        }
+
+
     return {
-        "email": payload["sub"],
-        "role": payload["role"]
+        "name": user["name"],
+        "email": user["email"],
+        "role": user["role"],
+        "is_verified": user["is_verified"],
+        "phone": user["phone"]
     }
 @app.get("/my-appointments")
 def my_appointments(
@@ -1487,16 +1874,211 @@ def ai_chat(data: AIRequest):
     )
 
     patient = cursor.fetchone()
+    print("PATIENT ID RECEIVED:", data.patient_id)
+    print("PATIENT DATA:", dict(patient) if patient else None)
+    print("PROMPT:", data.prompt.lower())
 
     if not patient:
         return {
             "success": False,
             "message": "Patient not found"
         }
+    prompt_lower = data.prompt.lower().strip()
 
+    if prompt_lower in [
+        "name",
+        "my name",
+        "my name?",
+        "my name is",
+        "what is my name",
+        "who am i"
+    ]:
+        return {
+            "success": True,
+            "response": f"Your name is {patient['name']}."
+        }
 
+    if "blood group" in prompt_lower:
+        return {
+            "success": True,
+            "response": f"Your blood group is {patient['blood_group']}."
+        }
+
+    if "age" in prompt_lower:
+        return {
+            "success": True,
+            "response": f"You are {patient['age']} years old."
+        }
+    if (
+            "health score" in prompt_lower
+            or prompt_lower == "score"
+            or "my score" in prompt_lower
+            or "what is my score" in prompt_lower
+    ):
+        return {
+            "success": True,
+            "response": "Your health score is 90/100 (Excellent)."
+        }
+
+    if "risk" in prompt_lower:
+        return {
+            "success": True,
+            "response": "Your risk level is Low (Risk Score: 10)."
+        }
+
+    if "recommendation" in prompt_lower:
+        return {
+            "success": True,
+            "response": (
+                "1. Maintain your current healthy lifestyle.\n"
+                "2. Stay hydrated and complete your medication course."
+            )
+        }
+
+    # Fetch patient's medical history
+    cursor.execute(
+        """
+        SELECT symptoms, diagnosis, treatment, doctor_notes
+        FROM medical_records
+        WHERE patient_id = ?
+        ORDER BY id DESC
+        LIMIT 5
+        """,
+        (data.patient_id,)
+    )
+    medical_records = cursor.fetchall()
+    print("MEDICAL RECORDS COUNT:", len(medical_records))
+    print("MEDICAL RECORDS RAW:", medical_records)
+
+    # Fetch patient's lab reports
+    cursor.execute(
+        """
+        SELECT report_name, report_result, doctor_comments
+        FROM lab_reports
+        WHERE patient_id = ?
+        ORDER BY id DESC
+        LIMIT 5
+        """,
+        (data.patient_id,)
+    )
+    lab_reports = cursor.fetchall()
+
+    # Fetch patient's prescriptions
+    cursor.execute(
+        """
+        SELECT medicine, dosage, duration, instructions
+        FROM prescriptions
+        WHERE patient_id = ?
+        ORDER BY id DESC
+        LIMIT 5
+        """,
+        (data.patient_id,)
+    )
+    prescriptions = cursor.fetchall()
     # Save user message
+    print("PROMPT RECEIVED:", data.prompt)
+    print("PROMPT TYPE:", type(data.prompt))
 
+    cursor.execute(
+        """
+        SELECT role, message
+        FROM ai_conversations
+        WHERE patient_id = ?
+        ORDER BY id DESC LIMIT 20
+        """,
+        (data.patient_id,)
+    )
+
+    history = cursor.fetchall()
+    print("RAW HISTORY FROM DB:")
+    for item in history:
+        print(dict(item))
+    print("========== HISTORY DEBUG ==========")
+
+    for item in history:
+        print(item["role"], "=>", item["message"])
+
+    print("===================================")
+    print("HISTORY LENGTH:", len(history))
+
+    conn.commit()
+
+    cursor.execute(
+        """
+        SELECT role, message
+        FROM ai_conversations
+        WHERE patient_id = ?
+        ORDER BY id DESC LIMIT 20
+        """,
+        (data.patient_id,)
+    )
+
+    history = cursor.fetchall()
+
+    print("SECOND HISTORY LENGTH:", len(history))
+    user_questions = []
+
+    for item in reversed(history):
+
+        if item["role"] != "user":
+            continue
+
+        text = item["message"].strip()
+
+        if not text:
+            continue
+
+        if "Patient Profile:" in text:
+            continue
+
+        if "what did i ask earlier" in text.lower():
+            continue
+
+        if text not in user_questions:
+            user_questions.append(text)
+            print("USER QUESTIONS LIST:")
+            print(user_questions)
+            print("=" * 50)
+
+    user_questions = user_questions[-10:]
+    memory_text = ""
+
+    if user_questions:
+        memory_text = (
+                "Previous user questions:\n"
+                + "\n".join(
+            f"{i + 1}. {q}"
+            for i, q in enumerate(user_questions)
+        )
+        )
+
+    print("MEMORY TEXT:")
+    print(memory_text)
+
+    for item in history:
+        print(dict(item))
+    print("MEDICAL RECORDS:")
+    print(medical_records)
+
+    print("LAB REPORTS:")
+    print(lab_reports)
+
+    print("PRESCRIPTIONS:")
+    print(prescriptions)
+
+    answer = AIEngine.generate(
+        prompt=data.prompt,
+        patient=patient,
+        history=history,
+        medical_records=medical_records,
+        lab_reports=lab_reports,
+        prescriptions=prescriptions,
+        memory_text=memory_text,
+
+    )
+    print("ANSWER DEBUG:")
+    print(answer)
+    print("=" * 100)
     cursor.execute(
         """
         INSERT INTO ai_conversations
@@ -1504,36 +2086,6 @@ def ai_chat(data: AIRequest):
         VALUES (?, ?, ?)
         """,
         (data.patient_id, "user", data.prompt)
-    )
-    cursor.execute(
-        """
-        SELECT role, message
-        FROM ai_conversations
-        WHERE patient_id = ?
-        ORDER BY id DESC LIMIT 10
-        """,
-        (data.patient_id,)
-    )
-
-    history = cursor.fetchall()
-
-    conn.commit()
-    cursor.execute(
-        """
-        SELECT role, message
-        FROM ai_conversations
-        WHERE patient_id = ?
-        ORDER BY id DESC LIMIT 10
-        """,
-        (data.patient_id,)
-    )
-
-    history = cursor.fetchall()
-
-    answer = AIEngine.generate(
-        prompt=data.prompt,
-        patient=patient,
-        history=history
     )
 
     cursor.execute(
@@ -1547,25 +2099,112 @@ def ai_chat(data: AIRequest):
 
     conn.commit()
 
-    # Save AI response
+    # # Save AI response
+    # cursor.execute(
+    #     """
+    #     INSERT INTO ai_conversations
+    #     (patient_id, role, message)
+    #     VALUES (?, ?, ?)
+    #     """,
+    #     (
+    #         data.patient_id,
+    #         "assistant",
+    #         answer
+    #     )
+    # )
+    #
+    # conn.commit()
+
+    return {
+        "success": True,
+        "response": answer
+    }
+@app.post("/notes")
+def create_note(note: Note):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
     cursor.execute(
         """
-        INSERT INTO ai_conversations
-        (patient_id, role, message)
+        INSERT INTO notes
+        (patient_id, title, content)
         VALUES (?, ?, ?)
         """,
         (
-            data.patient_id,
-            "assistant",
-            answer
+            note.patient_id,
+            note.title,
+            note.content
         )
     )
 
     conn.commit()
 
+    note_id = cursor.lastrowid
+
+    conn.close()
+
     return {
         "success": True,
-        "response": answer
+        "message": "Note created successfully",
+        "note_id": note_id
+    }
+
+
+@app.get("/notes/{patient_id}")
+def get_notes(patient_id: int):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM notes
+        WHERE patient_id = ?
+        ORDER BY id DESC
+        """,
+        (patient_id,)
+    )
+
+    notes = cursor.fetchall()
+
+    conn.close()
+
+    return {
+        "success": True,
+        "count": len(notes),
+        "notes": [dict(row) for row in notes]
+    }
+
+
+@app.delete("/notes/{note_id}")
+def delete_note(note_id: int):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        DELETE FROM notes
+        WHERE id = ?
+        """,
+        (note_id,)
+    )
+
+    conn.commit()
+
+    deleted = cursor.rowcount
+
+    conn.close()
+
+    return {
+        "success": deleted > 0,
+        "message": (
+            "Note deleted successfully"
+            if deleted > 0
+            else "Note not found"
+        )
     }
 @app.get("/ai/history/{patient_id}")
 def get_ai_history(patient_id: int):
@@ -1860,11 +2499,11 @@ def generate_report(patient_id: int):
         )
     )
     doc.build(content)
-
-    return {
-        "success": True,
-        "pdf_file": pdf_file
-    }
+    return FileResponse(
+        pdf_file,
+        media_type="application/pdf",
+        filename=pdf_file
+    )
 @app.get("/analytics")
 def analytics():
 
