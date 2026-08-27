@@ -5,6 +5,41 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>frontend</title>
+
+    <style>
+      @media screen and (max-width: 850px) {
+        * {
+          box-sizing: border-box !important;
+        }
+        body, #root {
+          width: 100vw !important;
+          max-width: 100% !important;
+          overflow-x: hidden !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        div[style*="display: flex"], div[style*="display:flex"] {
+          flex-direction: column !important;
+          width: 100% !important;
+        }
+        aside, nav, div[style*="width: 250px"], div[style*="width: 20%"] {
+          width: 100% !important;
+          min-width: 100% !important;
+          flex-direction: row !important;
+          flex-wrap: wrap !important;
+          justify-content: center !important;
+          padding: 8px !important;
+        }
+        input, select, textarea, button {
+          width: 100% !important;
+          font-size: 16px !important;
+        }
+        .panel, .card {
+          width: 100% !important;
+          padding: 10px !important;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
