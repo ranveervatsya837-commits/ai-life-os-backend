@@ -214,21 +214,44 @@ export default function App() {
   }
 
   const addPatient = async () => {
-    try {
-      await fetch(`${API_BASE_URL}/patients`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newPatient, age: Number(newPatient.age) }),
-      })
-      const res = await fetch(`${API_BASE_URL}/patients`)
-      const data = await res.json()
-      setPatients(Array.isArray(data) ? data : [])
-      setNewPatient({ name: '', age: '', gender: '', blood_group: '', phone: '', address: '' })
-      alert('Patient Added Successfully ✅')
-    } catch (error) {
-      console.error(error)
-    }
+  if (!newPatient.name || !newPatient.age) {
+    return alert('Please enter at least Name and Age');
   }
+  try {
+    const res = await fetch(`${API_BASE_URL}/patients`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` // Token add kiya
+      },
+      body: JSON.stringify({
+        name: newPatient.name,
+        age: Number(newPatient.age) || 0,
+        gender: newPatient.gender || 'Other',
+        blood_group: newPatient.blood_group || '',
+        phone: newPatient.phone || '',
+        address: newPatient.address || '',
+      }),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      alert('Patient Added Successfully ✅');
+      setNewPatient({ name: '', age: '', gender: '', blood_group: '', phone: '', address: '' });
+      // List refresh
+      const pRes = await fetch(`${API_BASE_URL}/patients`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const pData = await pRes.json();
+      setPatients(Array.isArray(pData) ? pData : []);
+    } else {
+      alert(data.detail || 'Failed to add patient ❌');
+    }
+  } catch (error) {
+    console.error(error);
+    alert('Error connecting to API ❌');
+  }
+};
 
   const login = async () => {
     try {
@@ -405,21 +428,44 @@ export default function App() {
   }
 
   const addAppointment = async () => {
-    try {
-      await fetch(`${API_BASE_URL}/appointments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newAppointment, fee: Number(newAppointment.fee) }),
-      })
-      const res = await fetch(`${API_BASE_URL}/appointments`)
-      const updated = await res.json()
-      setAppointments(Array.isArray(updated) ? updated : [])
-      setNewAppointment({ id: '', patient: '', doctor: '', hospital: '', date: '', time: '', fee: '' })
-      alert('Appointment Added Successfully ✅')
-    } catch (error) {
-      console.error('Error adding appointment:', error)
-    }
+  if (!newAppointment.patient || !newAppointment.doctor) {
+    return alert('Please fill in Patient and Doctor name');
   }
+  try {
+    const res = await fetch(`${API_BASE_URL}/appointments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` // Token add kiya
+      },
+      body: JSON.stringify({
+        patient: newAppointment.patient,
+        doctor: newAppointment.doctor,
+        hospital: newAppointment.hospital || 'General Hospital',
+        date: newAppointment.date || new Date().toISOString().split('T')[0],
+        time: newAppointment.time || '10:00 AM',
+        fee: Number(newAppointment.fee) || 0,
+      }),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      alert('Appointment Added Successfully ✅');
+      setNewAppointment({ id: '', patient: '', doctor: '', hospital: '', date: '', time: '', fee: '' });
+      // List refresh
+      const aRes = await fetch(`${API_BASE_URL}/appointments`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const aData = await aRes.json();
+      setAppointments(Array.isArray(aData) ? aData : []);
+    } else {
+      alert(data.detail || 'Failed to add appointment ❌');
+    }
+  } catch (error) {
+    console.error(error);
+    alert('Error connecting to API ❌');
+  }
+};
 
   const loadTimeline = async () => {
     if (!selectedPatient) return
