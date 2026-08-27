@@ -1270,6 +1270,8 @@ def ai_recommend(data: SymptomsRequest):
         "recommendation": "Consult a Doctor"
     }
 
+
+
 @app.post("/patients")
 def create_patient(patient: Patient):
     connection = None
@@ -1277,51 +1279,39 @@ def create_patient(patient: Patient):
         connection = get_connection()
         cursor = connection.cursor()
 
-        # PostgreSQL placeholder (%s)
-        try:
-            query = """
-                INSERT INTO patients (name, age, gender, blood_group, phone, address)
-                VALUES (%s, %s, %s, %s, %s, %s)
+        created_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+        cursor.execute(
             """
-            cursor.execute(
-                query,
-                (
-                    patient.name,
-                    patient.age,
-                    patient.gender,
-                    patient.blood_group,
-                    patient.phone,
-                    patient.address,
-                ),
-            )
-        except Exception:
-            # SQLite fallback placeholder (?)
-            if connection:
-                connection.rollback()
-            cursor.execute(
-                """
-                INSERT INTO patients (name, age, gender, blood_group, phone, address)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    patient.name,
-                    patient.age,
-                    patient.gender,
-                    patient.blood_group,
-                    patient.phone,
-                    patient.address,
-                ),
-            )
+            INSERT INTO patients (name, age, gender, blood_group, phone, address, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(patient.name).strip(),
+                int(patient.age),
+                str(patient.gender).strip(),
+                str(patient.blood_group).strip(),
+                str(patient.phone).strip(),
+                str(patient.address).strip(),
+                created_at
+            ),
+        )
 
         connection.commit()
+        new_id = cursor.lastrowid
         cursor.close()
         connection.close()
 
-        return {"message": "Patient added successfully", "patient": patient.dict()}
+        return {
+            "status": "success",
+            "message": "Patient added successfully",
+            "id": new_id,
+            "patient": patient.dict()
+        }
     except Exception as e:
         if connection:
             connection.rollback()
-        print(f"Error inserting patient: {e}")
+        print(f"Error creating patient: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 @app.get("/patients")
 def get_patients():
