@@ -310,7 +310,7 @@ Question:
 
         try:
             response = groq_client.chat.completions.create(
-                model="llama-3.1-8b-instant",
+                model="openai/gpt-oss-20b",
                 messages=messages
             )
             return response.choices[0].message.content
