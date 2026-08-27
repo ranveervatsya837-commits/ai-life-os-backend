@@ -48,6 +48,15 @@ export default function App() {
     instructions: '',
   })
 
+  // Dynamic Mobile Detection
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 850 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 850);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [newPatient, setNewPatient] = useState({
     name: '',
     age: '',
@@ -150,8 +159,6 @@ export default function App() {
     try {
       const res = await fetch(`${API_BASE_URL}/doctors/search/${encodeURIComponent(specToSearch.trim())}`)
       const data = await res.json()
-      console.log('Search Doctors Response:', data)
-
       if (Array.isArray(data)) {
         setDoctorsList(data)
       } else if (data.doctors && Array.isArray(data.doctors)) {
@@ -540,7 +547,7 @@ export default function App() {
 
   const verifyEmail = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/verify-email?email=${user.email}`, { method: 'POST' })
+      const response = await fetch(`${API_BASE_URL}/verify-email?email=${user?.email}`, { method: 'POST' })
       const data = await response.json()
       alert(data.message)
       setUser({ ...user, is_verified: 1 })
@@ -554,11 +561,11 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ current_email: user.email, name: editName || user.name, email: editEmail || user.email }),
+        body: JSON.stringify({ current_email: user?.email, name: editName || user?.name, email: editEmail || user?.email }),
       })
       const data = await response.json()
       alert(data.message)
-      setUser({ ...user, name: editName || user.name, email: editEmail || user.email })
+      setUser({ ...user, name: editName || user?.name, email: editEmail || user?.email })
     } catch (error) {
       console.error(error)
     }
@@ -571,55 +578,93 @@ export default function App() {
 
   if (!token) {
     return (
-      <div className="panel" style={{ maxWidth: '400px', margin: '100px auto' }}>
-        <h2>{showRegister ? '📝 Register' : '🔐 Login'}</h2>
-        {showRegister && (
-          <>
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          background: '#0a0f1d'
+        }}
+      >
+        <div className="panel" style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+          <h2>{showRegister ? '📝 Register' : '🔐 Login'}</h2>
+          {showRegister && (
+            <>
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={registerName}
+                onChange={(e) => setRegisterName(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Phone Number"
+                value={registerPhone}
+                onChange={(e) => setRegisterPhone(e.target.value)}
+              />
+            </>
+          )}
+          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          {showRegister && (
             <input
-              type="text"
-              placeholder="Full Name"
-              value={registerName}
-              onChange={(e) => setRegisterName(e.target.value)}
+              type="password"
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
             />
-            <input
-              type="text"
-              placeholder="Phone Number"
-              value={registerPhone}
-              onChange={(e) => setRegisterPhone(e.target.value)}
-            />
-          </>
-        )}
-        <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        {showRegister && (
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
-        )}
-        {showRegister ? (
-          <button onClick={register}>Create Account</button>
-        ) : (
-          <button onClick={login}>Login</button>
-        )}
-        <p
-          style={{ marginTop: '15px', cursor: 'pointer', color: '#60a5fa' }}
-          onClick={() => setShowRegister(!showRegister)}
-        >
-          {showRegister ? 'Already have an account? Login' : 'New User? Create Account'}
-        </p>
+          )}
+          {showRegister ? (
+            <button onClick={register}>Create Account</button>
+          ) : (
+            <button onClick={login}>Login</button>
+          )}
+          <p
+            style={{ marginTop: '15px', cursor: 'pointer', color: '#60a5fa', textAlign: 'center' }}
+            onClick={() => setShowRegister(!showRegister)}
+          >
+            {showRegister ? 'Already have an account? Login' : 'New User? Create Account'}
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="app">
-      <aside className="sidebar">
-        <div>
-          <div className="logo-container">
-            <svg className="infinity-logo" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        width: '100vw',
+        minHeight: '100vh',
+        background: '#0a0f1d',
+        color: '#ffffff',
+        overflowX: 'hidden',
+        boxSizing: 'border-box'
+      }}
+    >
+      <aside
+        className="sidebar"
+        style={{
+          width: isMobile ? '100%' : '250px',
+          minWidth: isMobile ? '100%' : '250px',
+          display: 'flex',
+          flexDirection: isMobile ? 'row' : 'column',
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
+          justifyContent: isMobile ? 'space-between' : 'flex-start',
+          gap: '8px',
+          padding: '16px',
+          background: '#111827',
+          borderRight: isMobile ? 'none' : '1px solid #1f2937',
+          borderBottom: isMobile ? '1px solid #1f2937' : 'none',
+          boxSizing: 'border-box'
+        }}
+      >
+        <div style={{ width: isMobile ? '100%' : 'auto', textAlign: isMobile ? 'center' : 'left' }}>
+          <div className="logo-container" style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', gap: '8px' }}>
+            <svg className="infinity-logo" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '40px', height: '24px' }}>
               <defs>
                 <linearGradient id="infGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#6366F1" />
@@ -638,127 +683,183 @@ export default function App() {
               <circle cx="25" cy="40" r="4" fill="#6366F1" />
               <circle cx="14" cy="30" r="3" fill="#6366F1" opacity="0.8" />
             </svg>
-            <h2>AI LIFEOS</h2>
+            <h2 style={{ margin: 0, fontSize: '1.3rem' }}>AI LIFEOS</h2>
           </div>
-          <p className="sidebar-subtitle">Personal Operating System</p>
+          <p className="sidebar-subtitle" style={{ fontSize: '0.8rem', opacity: 0.7, margin: '4px 0 12px 0' }}>Personal Operating System</p>
           {user && (
-            <>
-              <p>👤 {user.email}</p>
-              <p>Role: {user.role}</p>
-            </>
+            <div style={{ fontSize: '0.8rem', opacity: 0.8, marginBottom: '12px' }}>
+              <div>👤 {user.email}</div>
+              <div>Role: {user.role || 'User'}</div>
+            </div>
           )}
         </div>
 
-        <nav>
-          <button className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => setActiveTab('dashboard')}>
+        <nav style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', flexWrap: 'wrap', gap: '6px', width: '100%' }}>
+          <button
+            style={{ flex: isMobile ? '1 1 30%' : 'initial', padding: '10px 8px', fontSize: isMobile ? '12px' : '14px' }}
+            className={activeTab === 'dashboard' ? 'active' : ''}
+            onClick={() => setActiveTab('dashboard')}
+          >
             🏠 Dashboard
           </button>
-          <button className={activeTab === 'tasks' ? 'active' : ''} onClick={() => setActiveTab('tasks')}>
+          <button
+            style={{ flex: isMobile ? '1 1 30%' : 'initial', padding: '10px 8px', fontSize: isMobile ? '12px' : '14px' }}
+            className={activeTab === 'tasks' ? 'active' : ''}
+            onClick={() => setActiveTab('tasks')}
+          >
             ✅ Tasks
           </button>
-          <button className={activeTab === 'notes' ? 'active' : ''} onClick={() => setActiveTab('notes')}>
+          <button
+            style={{ flex: isMobile ? '1 1 30%' : 'initial', padding: '10px 8px', fontSize: isMobile ? '12px' : '14px' }}
+            className={activeTab === 'notes' ? 'active' : ''}
+            onClick={() => setActiveTab('notes')}
+          >
             📝 Notes
           </button>
-          <button className={activeTab === 'ai' ? 'active' : ''} onClick={() => setActiveTab('ai')}>
+          <button
+            style={{ flex: isMobile ? '1 1 30%' : 'initial', padding: '10px 8px', fontSize: isMobile ? '12px' : '14px' }}
+            className={activeTab === 'ai' ? 'active' : ''}
+            onClick={() => setActiveTab('ai')}
+          >
             🤖 AI Assistant
           </button>
-          <button className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
+          <button
+            style={{ flex: isMobile ? '1 1 30%' : 'initial', padding: '10px 8px', fontSize: isMobile ? '12px' : '14px' }}
+            className={activeTab === 'settings' ? 'active' : ''}
+            onClick={() => setActiveTab('settings')}
+          >
             ⚙️ Settings
           </button>
-          <button onClick={logout}>🚪 Logout</button>
+          <button
+            style={{ flex: isMobile ? '1 1 30%' : 'initial', padding: '10px 8px', fontSize: isMobile ? '12px' : '14px', background: '#dc2626' }}
+            onClick={logout}
+          >
+            🚪 Logout
+          </button>
         </nav>
       </aside>
 
-      <main className="main-content">
+      <main
+        className="main-content"
+        style={{
+          flex: 1,
+          padding: isMobile ? '12px' : '24px',
+          maxWidth: '100%',
+          overflowX: 'hidden',
+          boxSizing: 'border-box'
+        }}
+      >
         {activeTab === 'dashboard' && (
           <>
-            <header className="header">
-              <h1>AI LIFEOS Dashboard 🚀</h1>
-              <p>Manage your productivity with intelligence.</p>
+            <header className="header" style={{ marginBottom: '20px' }}>
+              <h1 style={{ fontSize: isMobile ? '1.5rem' : '2rem' }}>AI LIFEOS Dashboard 🚀</h1>
+              <p style={{ opacity: 0.8 }}>Manage your productivity with intelligence.</p>
             </header>
 
-            <section className="stats-grid">
-              <div className="stat-card">
-                <h3>Patients</h3>
-                <p>{stats?.total_patients ?? 0}</p>
+            <section
+              className="stats-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '12px',
+                marginBottom: '20px'
+              }}
+            >
+              <div className="stat-card" style={{ padding: '14px', borderRadius: '8px', background: '#1e293b' }}>
+                <h3 style={{ margin: 0, fontSize: '0.9rem' }}>Patients</h3>
+                <p style={{ fontSize: '1.4rem', fontWeight: 'bold', margin: '6px 0 0 0' }}>{stats?.total_patients ?? 0}</p>
               </div>
-              <div className="stat-card">
-                <h3>Medical Records</h3>
-                <p>{stats?.total_medical_records ?? 0}</p>
+              <div className="stat-card" style={{ padding: '14px', borderRadius: '8px', background: '#1e293b' }}>
+                <h3 style={{ margin: 0, fontSize: '0.9rem' }}>Medical Records</h3>
+                <p style={{ fontSize: '1.4rem', fontWeight: 'bold', margin: '6px 0 0 0' }}>{stats?.total_medical_records ?? 0}</p>
               </div>
-              <div className="stat-card">
-                <h3>Prescriptions</h3>
-                <p>{stats?.total_prescriptions ?? 0}</p>
+              <div className="stat-card" style={{ padding: '14px', borderRadius: '8px', background: '#1e293b' }}>
+                <h3 style={{ margin: 0, fontSize: '0.9rem' }}>Prescriptions</h3>
+                <p style={{ fontSize: '1.4rem', fontWeight: 'bold', margin: '6px 0 0 0' }}>{stats?.total_prescriptions ?? 0}</p>
               </div>
-              <div className="stat-card">
-                <h3>Appointments</h3>
-                <p>{stats?.total_appointments ?? 0}</p>
+              <div className="stat-card" style={{ padding: '14px', borderRadius: '8px', background: '#1e293b' }}>
+                <h3 style={{ margin: 0, fontSize: '0.9rem' }}>Appointments</h3>
+                <p style={{ fontSize: '1.4rem', fontWeight: 'bold', margin: '6px 0 0 0' }}>{stats?.total_appointments ?? 0}</p>
               </div>
-              <div className="stat-card">
-                <h3>Health Score</h3>
-                <p>{healthData?.health_score ?? 0}</p>
-                <small>{healthData?.health_status}</small>
+              <div className="stat-card" style={{ padding: '14px', borderRadius: '8px', background: '#1e293b', gridColumn: isMobile ? 'span 2' : 'auto' }}>
+                <h3 style={{ margin: 0, fontSize: '0.9rem' }}>Health Score</h3>
+                <p style={{ fontSize: '1.4rem', fontWeight: 'bold', margin: '6px 0 0 0' }}>{healthData?.health_score ?? 0}</p>
+                <small style={{ color: '#10b981' }}>{healthData?.health_status}</small>
               </div>
             </section>
 
-            <section className="content-grid">
-              <div className="panel">
+            <section
+              className="content-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '16px'
+              }}
+            >
+              <div className="panel" style={{ padding: '16px', borderRadius: '8px', background: '#1e293b' }}>
                 <h2>Today's Tasks</h2>
-                <ul>
+                <ul style={{ paddingLeft: '20px' }}>
                   <li>Review Patient Reports</li>
                   <li>Monitor High Risk Patients</li>
                   <li>Check Pending Appointments</li>
                 </ul>
               </div>
 
-              <div className="panel">
+              <div className="panel" style={{ padding: '16px', borderRadius: '8px', background: '#1e293b' }}>
                 <h2>➕ Add Patient</h2>
                 <input
                   type="text"
                   placeholder="Name"
                   value={newPatient.name}
                   onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
                 <input
                   type="number"
                   placeholder="Age"
                   value={newPatient.age}
                   onChange={(e) => setNewPatient({ ...newPatient, age: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
                 <input
                   type="text"
                   placeholder="Gender"
                   value={newPatient.gender}
                   onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
                 <input
                   type="text"
                   placeholder="Blood Group"
                   value={newPatient.blood_group}
                   onChange={(e) => setNewPatient({ ...newPatient, blood_group: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
                 <input
                   type="text"
                   placeholder="Phone"
                   value={newPatient.phone}
                   onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
                 <input
                   type="text"
                   placeholder="Address"
                   value={newPatient.address}
                   onChange={(e) => setNewPatient({ ...newPatient, address: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
-                <button onClick={addPatient}>Add Patient</button>
+                <button style={{ width: '100%', padding: '10px' }} onClick={addPatient}>Add Patient</button>
               </div>
 
-              <div className="panel">
+              <div className="panel" style={{ padding: '16px', borderRadius: '8px', background: '#1e293b' }}>
                 <h2>Recent Patients ({filteredPatients.length})</h2>
                 <input
                   type="text"
                   placeholder="🔍 Search Patient"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ width: '100%', marginBottom: '12px', padding: '10px' }}
                 />
                 {filteredPatients.map((patient) => (
                   <div
@@ -775,12 +876,13 @@ export default function App() {
                         .then((res) => res.json())
                         .then((data) => setRecommendations(data.recommendations || []))
                     }}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', padding: '8px', borderBottom: '1px solid #374151' }}
                   >
                     <strong>{patient.name}</strong>
-                    <p>Age: {patient.age} | {patient.gender}</p>
-                    <p>Blood Group: {patient.blood_group || 'N/A'}</p>
+                    <p style={{ margin: '4px 0', fontSize: '13px' }}>Age: {patient.age} | {patient.gender}</p>
+                    <p style={{ margin: '4px 0', fontSize: '13px' }}>Blood Group: {patient.blood_group || 'N/A'}</p>
                     <button
+                      style={{ background: '#dc2626', padding: '6px 12px', marginTop: '6px' }}
                       onClick={(e) => {
                         e.stopPropagation()
                         deletePatient(patient.id)
@@ -788,69 +890,74 @@ export default function App() {
                     >
                       Delete
                     </button>
-                    <hr />
                   </div>
                 ))}
               </div>
 
-              <div className="panel">
+              <div className="panel" style={{ padding: '16px', borderRadius: '8px', background: '#1e293b' }}>
                 <h2>Appointments ({appointments.length})</h2>
                 <input
                   type="text"
                   placeholder="Patient Name"
                   value={newAppointment.patient}
                   onChange={(e) => setNewAppointment({ ...newAppointment, patient: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
                 <input
                   type="text"
                   placeholder="Doctor Name"
                   value={newAppointment.doctor}
                   onChange={(e) => setNewAppointment({ ...newAppointment, doctor: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
                 <input
                   type="text"
                   placeholder="Hospital"
                   value={newAppointment.hospital}
                   onChange={(e) => setNewAppointment({ ...newAppointment, hospital: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
                 <input
                   type="date"
                   value={newAppointment.date}
                   onChange={(e) => setNewAppointment({ ...newAppointment, date: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
                 <input
                   type="text"
                   placeholder="Time"
                   value={newAppointment.time}
                   onChange={(e) => setNewAppointment({ ...newAppointment, time: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
                 <input
                   type="number"
                   placeholder="Fee"
                   value={newAppointment.fee}
                   onChange={(e) => setNewAppointment({ ...newAppointment, fee: e.target.value })}
+                  style={{ width: '100%', marginBottom: '8px', padding: '10px' }}
                 />
-                <button onClick={addAppointment}>Add Appointment</button>
+                <button style={{ width: '100%', padding: '10px' }} onClick={addAppointment}>Add Appointment</button>
 
-                {appointments.map((appointment) => (
-                  <div key={appointment.id}>
-                    <strong>{appointment.patient}</strong>
-                    <p>Doctor: {appointment.doctor}</p>
-                    <p>Hospital: {appointment.hospital}</p>
-                    <p>Date: {appointment.date}</p>
-                    <p>Time: {appointment.time}</p>
-                    <p>Fee: ₹{appointment.fee}</p>
-                    <button onClick={() => deleteAppointment(appointment.id)}>Delete Appointment</button>
-                    <hr />
-                  </div>
-                ))}
+                <div style={{ marginTop: '15px' }}>
+                  {appointments.map((appointment) => (
+                    <div key={appointment.id} style={{ padding: '8px 0', borderBottom: '1px solid #374151' }}>
+                      <strong>{appointment.patient}</strong>
+                      <p style={{ margin: '2px 0', fontSize: '13px' }}>Doctor: {appointment.doctor} | {appointment.hospital}</p>
+                      <p style={{ margin: '2px 0', fontSize: '13px' }}>Date: {appointment.date} ({appointment.time}) | Fee: ₹{appointment.fee}</p>
+                      <button style={{ background: '#dc2626', padding: '4px 10px', marginTop: '6px' }} onClick={() => deleteAppointment(appointment.id)}>
+                        Delete Appointment
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* DOCTOR MANAGEMENT PANEL */}
-              <div className="panel">
+              <div className="panel" style={{ padding: '16px', borderRadius: '8px', background: '#1e293b' }}>
                 <h2>👨‍⚕️ Doctor Management</h2>
 
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '8px', marginBottom: '15px' }}>
                   <select
                     value={doctorSpecialization}
                     onChange={(e) => {
@@ -863,6 +970,7 @@ export default function App() {
                       background: '#0f172a',
                       color: 'white',
                       border: '1px solid #374151',
+                      width: '100%'
                     }}
                   >
                     <option value="">-- Select Specialization --</option>
@@ -879,10 +987,10 @@ export default function App() {
                     placeholder="Or type specialization..."
                     value={doctorSpecialization}
                     onChange={(e) => setDoctorSpecialization(e.target.value)}
-                    style={{ flex: 1, minWidth: '180px' }}
+                    style={{ flex: 1, padding: '10px' }}
                   />
 
-                  <button onClick={() => searchDoctors()}>Search</button>
+                  <button style={{ padding: '10px 16px' }} onClick={() => searchDoctors()}>Search</button>
                 </div>
 
                 {doctorsList.length > 0 ? (
@@ -895,8 +1003,10 @@ export default function App() {
                         marginBottom: '10px',
                         borderRadius: '8px',
                         display: 'flex',
+                        flexDirection: isMobile ? 'column' : 'row',
                         justifyContent: 'space-between',
-                        alignItems: 'center',
+                        alignItems: isMobile ? 'flex-start' : 'center',
+                        gap: '10px'
                       }}
                     >
                       <div>
@@ -905,13 +1015,13 @@ export default function App() {
                           Hospital: {doc.hospital || 'N/A'} | Fee: ₹{doc.fee || 0}
                         </p>
                       </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => updateDoctorFee(doc.id || doc._id, doc.name || doc.doctor_name, doc.fee)}>
+                      <div style={{ display: 'flex', gap: '8px', width: isMobile ? '100%' : 'auto' }}>
+                        <button style={{ flex: isMobile ? 1 : 'initial' }} onClick={() => updateDoctorFee(doc.id || doc._id, doc.name || doc.doctor_name, doc.fee)}>
                           Edit Fee
                         </button>
                         <button
+                          style={{ flex: isMobile ? 1 : 'initial', backgroundColor: '#dc2626' }}
                           onClick={() => deleteDoctor(doc.id || doc._id)}
-                          style={{ backgroundColor: '#dc2626' }}
                         >
                           Delete
                         </button>
@@ -926,7 +1036,7 @@ export default function App() {
               </div>
 
               {/* ADMIN ANALYTICS PANEL */}
-              <div className="panel">
+              <div className="panel" style={{ padding: '16px', borderRadius: '8px', background: '#1e293b' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h2>📊 Admin Analytics</h2>
                   <button onClick={loadAdminAnalytics}>Refresh Analytics</button>
@@ -939,6 +1049,7 @@ export default function App() {
                       background: '#0f172a',
                       borderRadius: '8px',
                       overflowX: 'auto',
+                      fontSize: '12px'
                     }}
                   >
                     {JSON.stringify(adminAnalytics, null, 2)}
@@ -946,59 +1057,35 @@ export default function App() {
                 )}
               </div>
 
-              <div className="panel">
+              <div className="panel" style={{ padding: '16px', borderRadius: '8px', background: '#1e293b' }}>
                 <h2>Patient Details</h2>
                 {selectedPatient ? (
                   <div>
-                    <h3>DEBUG PATIENT: {selectedPatient.name}</h3>
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '15px' }}>
-                      <button onClick={() => setEditMode(!editMode)}>{editMode ? 'Cancel' : 'Edit'}</button>
-                      <button onClick={loadAiSummary}>
+                    <h3>{selectedPatient.name}</h3>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '15px' }}>
+                      <button style={{ flex: isMobile ? '1 1 45%' : 'initial' }} onClick={() => setEditMode(!editMode)}>{editMode ? 'Cancel' : 'Edit'}</button>
+                      <button style={{ flex: isMobile ? '1 1 45%' : 'initial' }} onClick={loadAiSummary}>
                         {aiSummaryLoading ? 'Loading AI Summary...' : 'Generate AI Summary'}
                       </button>
-                      <button onClick={loadTimeline}>Load Timeline</button>
-                      <button onClick={loadHealthSummary}>Load Health Summary</button>
-                      <button onClick={loadDoctorNotes}>Load Doctor Notes</button>
-                      <button onClick={loadTimelineSummary}>Load Timeline Summary</button>
+                      <button style={{ flex: isMobile ? '1 1 45%' : 'initial' }} onClick={loadTimeline}>Load Timeline</button>
+                      <button style={{ flex: isMobile ? '1 1 45%' : 'initial' }} onClick={loadHealthSummary}>Load Health Summary</button>
+                      <button style={{ flex: isMobile ? '1 1 45%' : 'initial' }} onClick={loadDoctorNotes}>Load Doctor Notes</button>
+                      <button style={{ flex: isMobile ? '1 1 45%' : 'initial' }} onClick={loadTimelineSummary}>Load Timeline Summary</button>
                     </div>
 
                     {aiSummary && (
-                      <div
-                        style={{
-                          marginTop: '15px',
-                          padding: '15px',
-                          border: '1px solid #374151',
-                          borderRadius: '8px',
-                          whiteSpace: 'pre-wrap',
-                        }}
-                      >
+                      <div style={{ marginTop: '15px', padding: '12px', border: '1px solid #374151', borderRadius: '8px', whiteSpace: 'pre-wrap' }}>
                         <h4>AI Summary</h4>
                         <p>{aiSummary}</p>
                       </div>
                     )}
 
                     {timelineData.length > 0 && (
-                      <div
-                        style={{
-                          marginTop: '15px',
-                          padding: '15px',
-                          border: '1px solid #374151',
-                          borderRadius: '8px',
-                        }}
-                      >
+                      <div style={{ marginTop: '15px', padding: '12px', border: '1px solid #374151', borderRadius: '8px' }}>
                         <h4>Patient Timeline</h4>
                         {timelineData.map((item, index) => (
-                          <div
-                            key={index}
-                            style={{
-                              marginBottom: '10px',
-                              paddingBottom: '10px',
-                              borderBottom: '1px solid #374151',
-                            }}
-                          >
-                            <p>
-                              <strong>{item.type}</strong> - {item.title}
-                            </p>
+                          <div key={index} style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #374151' }}>
+                            <p style={{ margin: 0 }}><strong>{item.type}</strong> - {item.title}</p>
                             <small>{item.created_at}</small>
                           </div>
                         ))}
@@ -1006,29 +1093,14 @@ export default function App() {
                     )}
 
                     {timelineSummary && (
-                      <div
-                        style={{
-                          marginTop: '15px',
-                          padding: '15px',
-                          border: '1px solid #374151',
-                          borderRadius: '8px',
-                          whiteSpace: 'pre-wrap',
-                        }}
-                      >
+                      <div style={{ marginTop: '15px', padding: '12px', border: '1px solid #374151', borderRadius: '8px', whiteSpace: 'pre-wrap' }}>
                         <h4>Timeline Summary</h4>
                         <p>{timelineSummary}</p>
                       </div>
                     )}
 
                     {healthSummary && (
-                      <div
-                        style={{
-                          marginTop: '15px',
-                          padding: '15px',
-                          border: '1px solid #374151',
-                          borderRadius: '8px',
-                        }}
-                      >
+                      <div style={{ marginTop: '15px', padding: '12px', border: '1px solid #374151', borderRadius: '8px' }}>
                         <h4>Health Summary</h4>
                         <p><strong>Patient:</strong> {healthSummary.patient?.name}</p>
                         <p><strong>Medical Records:</strong> {healthSummary.medical_records?.length}</p>
@@ -1038,15 +1110,7 @@ export default function App() {
                     )}
 
                     {doctorNotes && (
-                      <div
-                        style={{
-                          marginTop: '15px',
-                          padding: '15px',
-                          border: '1px solid #374151',
-                          borderRadius: '8px',
-                          whiteSpace: 'pre-wrap',
-                        }}
-                      >
+                      <div style={{ marginTop: '15px', padding: '12px', border: '1px solid #374151', borderRadius: '8px', whiteSpace: 'pre-wrap' }}>
                         <h4>Doctor Notes</h4>
                         <p>{doctorNotes}</p>
                       </div>
@@ -1056,39 +1120,44 @@ export default function App() {
                       type="text"
                       value={selectedPatient.name}
                       onChange={(e) => setSelectedPatient({ ...selectedPatient, name: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
                     <input
                       type="number"
                       value={selectedPatient.age}
                       onChange={(e) => setSelectedPatient({ ...selectedPatient, age: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
                     <input
                       type="text"
                       value={selectedPatient.gender}
                       onChange={(e) => setSelectedPatient({ ...selectedPatient, gender: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
                     <input
                       type="text"
                       value={selectedPatient.blood_group || ''}
                       onChange={(e) => setSelectedPatient({ ...selectedPatient, blood_group: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
                     <input
                       type="text"
                       value={selectedPatient.phone || ''}
                       onChange={(e) => setSelectedPatient({ ...selectedPatient, phone: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
                     <input
                       type="text"
                       value={selectedPatient.address || ''}
                       onChange={(e) => setSelectedPatient({ ...selectedPatient, address: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
 
-                    {editMode && <button onClick={updatePatient}>Save Changes</button>}
+                    {editMode && <button style={{ width: '100%', marginBottom: '10px' }} onClick={updatePatient}>Save Changes</button>}
 
                     <button
-                      onClick={() =>
-                        window.open(`${API_BASE_URL}/patients/${selectedPatient.id}/report`, '_blank')
-                      }
+                      style={{ width: '100%', marginBottom: '15px' }}
+                      onClick={() => window.open(`${API_BASE_URL}/patients/${selectedPatient.id}/report`, '_blank')}
                     >
                       📄 Download Patient Report
                     </button>
@@ -1114,7 +1183,7 @@ export default function App() {
                     {recommendations.length > 0 && (
                       <div>
                         <strong>Recommendations:</strong>
-                        <ul>
+                        <ul style={{ paddingLeft: '20px' }}>
                           {recommendations.map((item, index) => (
                             <li key={index}>{item}</li>
                           ))}
@@ -1128,38 +1197,34 @@ export default function App() {
                       placeholder="Symptoms"
                       value={newMedicalRecord.symptoms}
                       onChange={(e) => setNewMedicalRecord({ ...newMedicalRecord, symptoms: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
                     <input
                       type="text"
                       placeholder="Diagnosis"
                       value={newMedicalRecord.diagnosis}
                       onChange={(e) => setNewMedicalRecord({ ...newMedicalRecord, diagnosis: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
                     <input
                       type="text"
                       placeholder="Treatment"
                       value={newMedicalRecord.treatment}
                       onChange={(e) => setNewMedicalRecord({ ...newMedicalRecord, treatment: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
                     <textarea
                       placeholder="Doctor Notes"
                       value={newMedicalRecord.doctor_notes}
                       onChange={(e) => setNewMedicalRecord({ ...newMedicalRecord, doctor_notes: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
-                    <button onClick={saveMedicalRecord}>Save Medical Record</button>
+                    <button style={{ width: '100%', marginBottom: '15px' }} onClick={saveMedicalRecord}>Save Medical Record</button>
 
                     <h3>Medical Records</h3>
                     {medicalRecords.length > 0 ? (
                       medicalRecords.map((record) => (
-                        <div
-                          key={record.id}
-                          style={{
-                            border: '1px solid #374151',
-                            padding: '10px',
-                            marginBottom: '10px',
-                            borderRadius: '8px',
-                          }}
-                        >
+                        <div key={record.id} style={{ border: '1px solid #374151', padding: '10px', marginBottom: '10px', borderRadius: '8px' }}>
                           <p><strong>Symptoms:</strong> {record.symptoms}</p>
                           <p><strong>Diagnosis:</strong> {record.diagnosis}</p>
                           <p><strong>Treatment:</strong> {record.treatment}</p>
@@ -1177,38 +1242,34 @@ export default function App() {
                       placeholder="Medicine"
                       value={newPrescription.medicine}
                       onChange={(e) => setNewPrescription({ ...newPrescription, medicine: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
                     <input
                       type="text"
                       placeholder="Dosage"
                       value={newPrescription.dosage}
                       onChange={(e) => setNewPrescription({ ...newPrescription, dosage: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
                     <input
                       type="text"
                       placeholder="Duration"
                       value={newPrescription.duration}
                       onChange={(e) => setNewPrescription({ ...newPrescription, duration: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
                     <textarea
                       placeholder="Instructions"
                       value={newPrescription.instructions}
                       onChange={(e) => setNewPrescription({ ...newPrescription, instructions: e.target.value })}
+                      style={{ width: '100%', marginBottom: '8px', padding: '8px' }}
                     />
-                    <button onClick={savePrescription}>Save Prescription</button>
+                    <button style={{ width: '100%', marginBottom: '15px' }} onClick={savePrescription}>Save Prescription</button>
 
                     <h4>Prescription History</h4>
                     {prescriptions.length > 0 ? (
                       prescriptions.map((prescription) => (
-                        <div
-                          key={prescription.id}
-                          style={{
-                            border: '1px solid #374151',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            marginBottom: '10px',
-                          }}
-                        >
+                        <div key={prescription.id} style={{ border: '1px solid #374151', borderRadius: '8px', padding: '12px', marginBottom: '10px' }}>
                           <p><strong>Medicine:</strong> {prescription.medicine}</p>
                           <p><strong>Dosage:</strong> {prescription.dosage}</p>
                           <p><strong>Duration:</strong> {prescription.duration}</p>
@@ -1228,17 +1289,17 @@ export default function App() {
         )}
 
         {activeTab === 'tasks' && (
-          <div className="panel" style={{ padding: '24px' }}>
+          <div className="panel" style={{ padding: isMobile ? '16px' : '24px', background: '#1e293b', borderRadius: '8px' }}>
             <h2>✅ Tasks Management</h2>
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '10px', marginBottom: '20px' }}>
               <input
                 type="text"
                 placeholder="Enter new task..."
                 value={newTask}
                 onChange={(e) => setNewTask(e.target.value)}
-                style={{ flex: 1 }}
+                style={{ flex: 1, padding: '10px' }}
               />
-              <button onClick={addTask}>Add Task</button>
+              <button style={{ padding: '10px 16px' }} onClick={addTask}>Add Task</button>
             </div>
             {tasks.map((task) => (
               <div
@@ -1247,7 +1308,7 @@ export default function App() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '10px',
+                  padding: '12px',
                   marginBottom: '10px',
                   border: '1px solid #374151',
                   borderRadius: '8px',
@@ -1259,7 +1320,7 @@ export default function App() {
                     type="checkbox"
                     checked={task.completed}
                     onChange={() => toggleTask(task.id)}
-                    style={{ width: '18px', minWidth: '18px' }}
+                    style={{ width: '18px', minWidth: '18px', height: '18px' }}
                   />
                   <span
                     style={{
@@ -1267,22 +1328,20 @@ export default function App() {
                       opacity: task.completed ? 0.6 : 1,
                       flex: 1,
                       minWidth: 0,
-                      whiteSpace: 'normal',
                       wordBreak: 'break-word',
-                      overflowWrap: 'break-word',
                     }}
                   >
                     {task.text}
                   </span>
                 </div>
-                <button onClick={() => deleteTask(task.id)}>Delete</button>
+                <button style={{ background: '#dc2626', padding: '6px 12px' }} onClick={() => deleteTask(task.id)}>Delete</button>
               </div>
             ))}
           </div>
         )}
 
         {activeTab === 'notes' && (
-          <div className="panel" style={{ padding: '24px' }}>
+          <div className="panel" style={{ padding: isMobile ? '16px' : '24px', background: '#1e293b', borderRadius: '8px' }}>
             <h2>📝 Notes Management</h2>
             <div style={{ marginBottom: '20px' }}>
               <button onClick={loadNotes}>Load Notes</button>
@@ -1292,33 +1351,25 @@ export default function App() {
               placeholder="Note Title"
               value={newNote.title}
               onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
-              style={{ width: '100%', marginBottom: '10px' }}
+              style={{ width: '100%', marginBottom: '10px', padding: '10px' }}
             />
             <textarea
               placeholder="Note Content"
               value={newNote.content}
               onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
               rows={4}
-              style={{ width: '100%', marginBottom: '10px' }}
+              style={{ width: '100%', marginBottom: '10px', padding: '10px' }}
             />
-            <button onClick={createNote}>Save Note</button>
+            <button style={{ width: '100%' }} onClick={createNote}>Save Note</button>
             <hr style={{ margin: '20px 0' }} />
             {notes.length > 0 ? (
               notes.map((note) => (
-                <div
-                  key={note.id}
-                  style={{
-                    border: '1px solid #374151',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    marginBottom: '10px',
-                  }}
-                >
-                  <h3>{note.title}</h3>
-                  <p>{note.content}</p>
-                  <small>{note.created_at}</small>
+                <div key={note.id} style={{ border: '1px solid #374151', padding: '12px', borderRadius: '8px', marginBottom: '10px' }}>
+                  <h3 style={{ margin: '0 0 8px 0' }}>{note.title}</h3>
+                  <p style={{ margin: '0 0 8px 0' }}>{note.content}</p>
+                  <small style={{ opacity: 0.7 }}>{note.created_at}</small>
                   <br />
-                  <button onClick={() => deleteNote(note.id)}>Delete</button>
+                  <button style={{ background: '#dc2626', marginTop: '10px', padding: '4px 10px' }} onClick={() => deleteNote(note.id)}>Delete</button>
                 </div>
               ))
             ) : (
@@ -1328,9 +1379,9 @@ export default function App() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="panel" style={{ padding: '24px' }}>
+          <div className="panel" style={{ padding: isMobile ? '16px' : '24px', background: '#1e293b', borderRadius: '8px' }}>
             <h2>⚙️ System Settings</h2>
-            <div style={{ border: '1px solid #374151', borderRadius: '10px', padding: '20px', marginTop: '20px' }}>
+            <div style={{ border: '1px solid #374151', borderRadius: '10px', padding: '16px', marginTop: '16px' }}>
               <h3>👤 User Profile</h3>
               <p><strong>Name:</strong> {user?.name || registerName || 'Not Available'}</p>
               <p><strong>Email:</strong> {user?.email || 'Not Available'}</p>
@@ -1340,19 +1391,19 @@ export default function App() {
                 placeholder="New Name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                style={{ width: '100%', marginTop: '10px', marginBottom: '10px' }}
+                style={{ width: '100%', marginTop: '10px', marginBottom: '10px', padding: '10px' }}
               />
               <input
                 type="email"
                 placeholder="New Email"
                 value={editEmail}
                 onChange={(e) => setEditEmail(e.target.value)}
-                style={{ width: '100%', marginBottom: '10px' }}
+                style={{ width: '100%', marginBottom: '10px', padding: '10px' }}
               />
-              <button onClick={updateProfile}>Save Profile</button>
+              <button style={{ width: '100%' }} onClick={updateProfile}>Save Profile</button>
             </div>
 
-            <div style={{ border: '1px solid #374151', borderRadius: '10px', padding: '20px', marginTop: '20px' }}>
+            <div style={{ border: '1px solid #374151', borderRadius: '10px', padding: '16px', marginTop: '16px' }}>
               <h3>🔒 Security</h3>
               <div style={{ marginTop: '15px' }}>
                 <input
@@ -1360,106 +1411,89 @@ export default function App() {
                   placeholder="Old Password"
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
-                  style={{ width: '100%', marginBottom: '10px' }}
+                  style={{ width: '100%', marginBottom: '10px', padding: '10px' }}
                 />
                 <input
                   type="password"
                   placeholder="New Password"
                   value={newPasswordValue}
                   onChange={(e) => setNewPasswordValue(e.target.value)}
-                  style={{ width: '100%', marginBottom: '10px' }}
+                  style={{ width: '100%', marginBottom: '10px', padding: '10px' }}
                 />
-                <button onClick={changePassword}>Change Password</button>
+                <button style={{ width: '100%' }} onClick={changePassword}>Change Password</button>
               </div>
             </div>
 
-            <div style={{ border: '1px solid #374151', borderRadius: '10px', padding: '20px', marginTop: '20px' }}>
+            <div style={{ border: '1px solid #374151', borderRadius: '10px', padding: '16px', marginTop: '16px' }}>
               <h3>📧 Email Verification</h3>
               <p>Status: {user?.is_verified ? 'Verified ✅' : 'Not Verified ❌'}</p>
               <button onClick={verifyEmail}>Verify Email</button>
             </div>
 
             <div style={{ marginTop: '20px' }}>
-              <button onClick={logout}>🚪 Logout</button>
+              <button style={{ width: '100%', background: '#dc2626', padding: '12px' }} onClick={logout}>🚪 Logout</button>
             </div>
           </div>
         )}
 
         {activeTab === 'ai' && (
-          <div className="panel ai-workspace">
-            <div className="ai-header">
+          <div className="panel ai-workspace" style={{ padding: isMobile ? '16px' : '24px', background: '#1e293b', borderRadius: '8px' }}>
+            <div className="ai-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2>🤖 AI LIFEOS Assistant</h2>
-                <p>Intelligent health & lifestyle assistant</p>
+                <h2 style={{ margin: 0 }}>🤖 AI LIFEOS Assistant</h2>
+                <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>Intelligent health & lifestyle assistant</p>
               </div>
-              <span className="ai-status">● Online</span>
+              <span className="ai-status" style={{ color: '#10b981', fontWeight: 'bold' }}>● Online</span>
             </div>
+
             <div style={{ marginTop: '15px', marginBottom: '15px' }}>
-              <button onClick={generateAITasks}>🧠 Generate AI Tasks</button>
+              <button style={{ width: isMobile ? '100%' : 'auto' }} onClick={generateAITasks}>🧠 Generate AI Tasks</button>
             </div>
 
             {selectedPatient && (
-              <div
-                style={{
-                  marginTop: '15px',
-                  marginBottom: '15px',
-                  padding: '15px',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  background: '#111827',
-                }}
-              >
-                <h3>📊 Patient Snapshot</h3>
-                <p><strong>Patient:</strong> {selectedPatient.name}</p>
+              <div style={{ marginTop: '15px', marginBottom: '15px', padding: '14px', border: '1px solid #374151', borderRadius: '8px', background: '#111827' }}>
+                <h3 style={{ margin: '0 0 8px 0' }}>📊 Patient Snapshot</h3>
+                <p style={{ margin: '4px 0' }}><strong>Patient:</strong> {selectedPatient.name}</p>
                 {healthScore && (
                   <>
-                    <p><strong>Health Score:</strong> {healthScore.health_score}</p>
-                    <p><strong>Status:</strong> {healthScore.health_status}</p>
+                    <p style={{ margin: '4px 0' }}><strong>Health Score:</strong> {healthScore.health_score}</p>
+                    <p style={{ margin: '4px 0' }}><strong>Status:</strong> {healthScore.health_status}</p>
                   </>
                 )}
                 {riskData && (
                   <>
-                    <p><strong>Risk Score:</strong> {riskData.risk_score}</p>
-                    <p><strong>Risk Level:</strong> {riskData.risk_level}</p>
+                    <p style={{ margin: '4px 0' }}><strong>Risk Score:</strong> {riskData.risk_score}</p>
+                    <p style={{ margin: '4px 0' }}><strong>Risk Level:</strong> {riskData.risk_level}</p>
                   </>
                 )}
               </div>
             )}
 
             {aiTasks.length > 0 && (
-              <div
-                style={{
-                  marginBottom: '15px',
-                  padding: '15px',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  background: '#0f172a',
-                }}
-              >
-                <h3>🧠 AI Suggested Tasks</h3>
+              <div style={{ marginBottom: '15px', padding: '14px', border: '1px solid #374151', borderRadius: '8px', background: '#0f172a' }}>
+                <h3 style={{ margin: '0 0 8px 0' }}>🧠 AI Suggested Tasks</h3>
                 {aiTasks.map((task, index) => (
-                  <div key={index} style={{ marginBottom: '10px' }}>{task}</div>
+                  <div key={index} style={{ marginBottom: '6px' }}>• {task}</div>
                 ))}
               </div>
             )}
 
-            <div className="ai-chat-box">
+            <div className="ai-chat-box" style={{ maxHeight: '350px', overflowY: 'auto', marginBottom: '15px', padding: '10px', background: '#0f172a', borderRadius: '8px' }}>
               {chatHistory.length === 0 ? (
-                <div className="ai-welcome">
-                  <div className="ai-icon">🤖</div>
+                <div className="ai-welcome" style={{ textAlign: 'center', padding: '20px' }}>
+                  <div className="ai-icon" style={{ fontSize: '2rem' }}>🤖</div>
                   <h3>How can I help you?</h3>
-                  <p>Ask me about patient health, lifestyle, sleep, exercise, or general health guidance.</p>
+                  <p style={{ opacity: 0.8 }}>Ask me about patient health, lifestyle, sleep, exercise, or general health guidance.</p>
                 </div>
               ) : (
                 chatHistory.map((chat, index) => (
-                  <div className="chat-message" key={index}>
-                    <div className="user-message">
-                      <strong>👤 You</strong>
-                      <p>{chat.prompt}</p>
+                  <div className="chat-message" key={index} style={{ marginBottom: '12px' }}>
+                    <div className="user-message" style={{ background: '#374151', padding: '8px 12px', borderRadius: '6px', marginBottom: '6px' }}>
+                      <strong>👤 You: </strong>{chat.prompt}
                     </div>
-                    <div className="ai-message">
-                      <strong>🤖 AI LIFEOS</strong>
-                      <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', margin: 0 }}>
+                    <div className="ai-message" style={{ background: '#1e293b', padding: '8px 12px', borderRadius: '6px' }}>
+                      <strong>🤖 AI LIFEOS: </strong>
+                      <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', margin: '4px 0 0 0' }}>
                         {chat.response}
                       </pre>
                     </div>
@@ -1524,14 +1558,15 @@ export default function App() {
               </select>
             </div>
 
-            <div className="ai-input-area">
+            <div className="ai-input-area" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <textarea
                 placeholder="Ask AI about patient health..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 rows="3"
+                style={{ width: '100%', padding: '10px' }}
               />
-              <button onClick={askAI} disabled={aiLoading}>
+              <button style={{ width: '100%', padding: '12px' }} onClick={askAI} disabled={aiLoading}>
                 {aiLoading ? 'Thinking... 🤖' : 'Send 🚀'}
               </button>
             </div>
