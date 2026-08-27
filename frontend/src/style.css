@@ -376,3 +376,59 @@ body {
     font-size: 16px !important; /* Prevents auto-zoom on mobile */
   }
 }
+/* =====================================================
+   MOBILE COMPLETE RESET (<= 850px)
+===================================================== */
+@media screen and (max-width: 850px) {
+  * {
+    box-sizing: border-box !important;
+  }
+
+  html, body, #root, .app-container {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Desktop Row Layout ko Column me badalna */
+  .app-container, .main-layout, div[style*="display: flex"] {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+  }
+
+  /* Sidebar buttons ko top navbar me set karna */
+  .sidebar, nav, div[style*="width: 250px"], div[style*="width: 20%"] {
+    width: 100% !important;
+    min-width: 100% !important;
+    height: auto !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 10px !important;
+  }
+
+  .sidebar button, nav button {
+    flex: 1 1 40% !important;
+    padding: 8px !important;
+    font-size: 13px !important;
+  }
+
+  /* Stats grid 2 columns */
+  .stats-grid, div[style*="grid-template-columns"] {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  /* Sabhi content boxes ko screen par auto-fit karna */
+  .card, .content, div[style*="padding"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
