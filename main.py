@@ -238,6 +238,8 @@ class LabReport(BaseModel):
 
 # ----------------- AI ENGINE ----------------- #
 # ----------------- AI ENGINE ----------------- #
+
+
 class AIEngine:
     SYSTEM_PROMPT = """
 You are AI LIFEOS, an intelligent healthcare assistant.
@@ -251,8 +253,11 @@ Rules:
 
     @staticmethod
     def generate(prompt: str, patient, history=None, medical_records=None, lab_reports=None, prescriptions=None, memory_text="") -> str:
-        if not client:
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
             return "AI service is currently unavailable. Please check your GROQ_API_KEY."
+
+        groq_client = Groq(api_key=api_key)
 
         medical_history_text = ""
         if medical_records:
@@ -304,7 +309,7 @@ Question:
         messages.append({"role": "user", "content": full_prompt})
 
         try:
-            response = client.chat.completions.create(
+            response = groq_client.chat.completions.create(
                 model="llama-3.1-8b-instant",
                 messages=messages
             )
