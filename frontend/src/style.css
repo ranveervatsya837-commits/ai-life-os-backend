@@ -432,3 +432,63 @@ body {
     max-width: 100% !important;
   }
 }
+/* =====================================================
+   AGGRESSIVE MOBILE OVERRIDE (Screen <= 850px)
+===================================================== */
+@media screen and (max-width: 850px) {
+  *, *::before, *::after {
+    box-sizing: border-box !important;
+  }
+
+  html, body, #root {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Desktop Flex Container ko Vertical Stack banana */
+  div[style*="display: flex"],
+  div[style*="display:flex"],
+  .dashboard,
+  .app-container {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: auto !important;
+    align-items: stretch !important;
+  }
+
+  /* Navigation Sidebar */
+  nav, .sidebar, div[style*="width: 250px"], div[style*="width: 20%"] {
+    width: 100% !important;
+    min-width: 100% !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    padding: 10px !important;
+  }
+
+  /* All buttons in navigation */
+  nav button, .sidebar button {
+    flex: 1 1 42% !important;
+    margin: 4px !important;
+    font-size: 13px !important;
+  }
+
+  /* Form Elements & Inputs full-width */
+  input, select, textarea, button {
+    width: 100% !important;
+    max-width: 100% !important;
+    font-size: 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Panels and cards */
+  .panel, .card, section {
+    width: 100% !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+  }
+}
