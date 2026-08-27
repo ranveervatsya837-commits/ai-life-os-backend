@@ -237,6 +237,7 @@ class LabReport(BaseModel):
 
 
 # ----------------- AI ENGINE ----------------- #
+# ----------------- AI ENGINE ----------------- #
 class AIEngine:
     SYSTEM_PROMPT = """
 You are AI LIFEOS, an intelligent healthcare assistant.
@@ -302,15 +303,14 @@ Question:
                 messages.append({"role": item["role"], "content": item["message"]})
         messages.append({"role": "user", "content": full_prompt})
 
-    try:
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=messages
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"AI Processing Error: {str(e)}"
-
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=messages
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            return f"AI Processing Error: {str(e)}"
 # ----------------- AUTH ENDPOINTS ----------------- #
 @app.post("/register")
 def register(user: RegisterUser):
