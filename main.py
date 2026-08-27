@@ -1,6 +1,84 @@
 from fastapi import FastAPI, HTTPException
 from database import get_connection
+from database import get_connection
 
+
+def init_db():
+    connection = None
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+                       CREATE TABLE IF NOT EXISTS patients
+                       (
+                           id
+                           INTEGER
+                           PRIMARY
+                           KEY
+                           AUTOINCREMENT,
+                           name
+                           TEXT
+                           NOT
+                           NULL,
+                           age
+                           INTEGER
+                           NOT
+                           NULL,
+                           gender
+                           TEXT
+                           NOT
+                           NULL,
+                           blood_group
+                           TEXT,
+                           phone
+                           TEXT,
+                           address
+                           TEXT,
+                           created_at
+                           TEXT
+                       );
+                       """)
+
+        cursor.execute("""
+                       CREATE TABLE IF NOT EXISTS appointments
+                       (
+                           id
+                           INTEGER
+                           PRIMARY
+                           KEY
+                           AUTOINCREMENT,
+                           patient
+                           TEXT
+                           NOT
+                           NULL,
+                           doctor
+                           TEXT
+                           NOT
+                           NULL,
+                           hospital
+                           TEXT,
+                           date
+                           TEXT,
+                           time
+                           TEXT,
+                           fee
+                           INTEGER,
+                           created_at
+                           TEXT
+                       );
+                       """)
+
+        connection.commit()
+        cursor.close()
+        connection.close()
+        print("Database tables initialized successfully.")
+    except Exception as e:
+        print(f"Database init error: {e}")
+
+
+# Startup par table auto-create hogi
+init_db()
 from auth import (
     hash_password,
     verify_password,
