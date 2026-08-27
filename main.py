@@ -1026,3 +1026,231 @@ def export_patients():
             writer.writerow([p["id"], p["name"], p["age"], p["gender"], p["phone"], p["address"]])
     conn.close()
     return {"success": True, "file": csv_file}
+
+
+@app.get("/", response_class=HTMLResponse)
+def serve_frontend():
+    return """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI LIFE OS - Healthcare Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+    <!-- Navbar -->
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 py-4 px-6 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-heart-pulse text-rose-500 text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-wide text-white">AI LIFE <span class="text-rose-500">OS</span></h1>
+            </div>
+            <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full font-medium">
+                ● Live API Connected
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+
+        <!-- Left Column: Patient Selector & Profile -->
+        <section class="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
+            <h2 class="text-lg font-semibold text-slate-200 border-b border-slate-700 pb-2 flex items-center gap-2">
+                <i class="fa-solid fa-user-circle text-sky-400"></i> Patient Profile
+            </h2>
+
+            <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold tracking-wider">Select Patient</label>
+                <select id="patientSelect" onchange="loadPatientProfile()" class="w-full mt-1.5 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-rose-500">
+                    <option value="">Loading patients...</option>
+                </select>
+            </div>
+
+            <!-- Patient Details Card -->
+            <div id="patientDetails" class="bg-slate-950/60 rounded-xl p-4 border border-slate-800 text-sm space-y-2">
+                <p class="text-slate-400 text-xs">Select or add a patient to view data.</p>
+            </div>
+
+            <!-- Quick Add Patient Accordion -->
+            <details class="bg-slate-900/80 rounded-xl border border-slate-700/70 p-3">
+                <summary class="text-xs font-semibold text-rose-400 cursor-pointer select-none">
+                    + Add New Patient
+                </summary>
+                <form id="newPatientForm" onsubmit="createNewPatient(event)" class="mt-3 space-y-2">
+                    <input type="text" id="pName" placeholder="Full Name" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200" />
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" id="pAge" placeholder="Age" required class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200" />
+                        <select id="pGender" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200">
+                            <option>Male</option><option>Female</option><option>Other</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="pBlood" placeholder="Blood Group (e.g. B+)" required class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200" />
+                        <input type="text" id="pPhone" placeholder="Phone" required class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200" />
+                    </div>
+                    <input type="text" id="pAddress" placeholder="City / Address" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200" />
+                    <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white rounded-lg py-1.5 text-xs font-semibold transition">Save Patient</button>
+                </form>
+            </details>
+        </section>
+
+        <!-- Right Column: AI LifeOS Chat -->
+        <section class="md:col-span-2 bg-slate-800/60 border border-slate-700/70 rounded-2xl p-5 flex flex-col shadow-xl min-h-[500px]">
+            <div class="border-b border-slate-700 pb-3 mb-4 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-robot text-rose-500"></i>
+                    <h2 class="text-lg font-semibold text-slate-200">AI Medical Consultation</h2>
+                </div>
+                <span class="text-xs text-slate-400">Powered by Groq OSS Engine</span>
+            </div>
+
+            <!-- Chat Box -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto space-y-3 pr-2 mb-4 max-h-[420px] text-sm scrollbar-thin">
+                <div class="flex gap-3 items-start bg-slate-950/40 p-3 rounded-xl border border-slate-800">
+                    <i class="fa-solid fa-heart-pulse text-rose-500 mt-1"></i>
+                    <div>
+                        <p class="font-semibold text-xs text-rose-400">AI LIFE OS</p>
+                        <p class="text-slate-300 text-sm mt-0.5">Namaste! Select your profile and ask any health query or symptom evaluation.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Box -->
+            <form id="chatForm" onsubmit="sendMessage(event)" class="flex gap-2">
+                <input type="text" id="userPrompt" placeholder="Ask about diet, symptoms, or precautions..." required class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-rose-500" />
+                <button type="submit" id="sendBtn" class="bg-rose-600 hover:bg-rose-500 px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+                    <span>Ask AI</span>
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                </button>
+            </form>
+        </section>
+
+    </main>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let patientsList = [];
+
+        async function fetchPatients() {
+            try {
+                const res = await fetch(`${API_BASE}/patients`);
+                patientsList = await res.json();
+                const sel = document.getElementById('patientSelect');
+                sel.innerHTML = '';
+                if (patientsList.length === 0) {
+                    sel.innerHTML = '<option value="">No patients found. Add one!</option>';
+                    document.getElementById('patientDetails').innerHTML = '<p class="text-xs text-amber-400">No patients registered in database.</p>';
+                    return;
+                }
+                patientsList.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = `${p.name} (ID: ${p.id})`;
+                    sel.appendChild(opt);
+                });
+                loadPatientProfile();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function loadPatientProfile() {
+            const pId = parseInt(document.getElementById('patientSelect').value);
+            const p = patientsList.find(item => item.id === pId);
+            if (!p) return;
+            document.getElementById('patientDetails').innerHTML = `
+                <div class="text-slate-200 font-medium">${p.name}</div>
+                <div class="text-xs text-slate-400">Age: <span class="text-slate-200">${p.age}</span> | Gender: <span class="text-slate-200">${p.gender}</span></div>
+                <div class="text-xs text-slate-400">Blood Group: <span class="text-rose-400 font-semibold">${p.blood_group}</span></div>
+                <div class="text-xs text-slate-400">Phone: <span class="text-slate-200">${p.phone}</span></div>
+                <div class="text-xs text-slate-400">City: <span class="text-slate-200">${p.address}</span></div>
+            `;
+        }
+
+        async function createNewPatient(e) {
+            e.preventDefault();
+            const body = {
+                name: document.getElementById('pName').value,
+                age: parseInt(document.getElementById('pAge').value),
+                gender: document.getElementById('pGender').value,
+                blood_group: document.getElementById('pBlood').value,
+                phone: document.getElementById('pPhone').value,
+                address: document.getElementById('pAddress').value
+            };
+            const res = await fetch(`${API_BASE}/patients`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                document.getElementById('newPatientForm').reset();
+                await fetchPatients();
+            }
+        }
+
+        async function sendMessage(e) {
+            e.preventDefault();
+            const promptInput = document.getElementById('userPrompt');
+            const prompt = promptInput.value.trim();
+            const patientId = parseInt(document.getElementById('patientSelect').value);
+
+            if (!patientId) {
+                alert('Please add or select a patient first!');
+                return;
+            }
+            if (!prompt) return;
+
+            const chatBox = document.getElementById('chatMessages');
+
+            // Append User Message
+            chatBox.innerHTML += `
+                <div class="flex gap-3 items-start justify-end">
+                    <div class="bg-rose-600/20 border border-rose-500/30 text-rose-100 p-3 rounded-xl max-w-[80%] text-right">
+                        <p class="font-semibold text-xs text-rose-300">You</p>
+                        <p class="text-sm mt-0.5">${prompt}</p>
+                    </div>
+                </div>
+            `;
+            promptInput.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-xs"></i> <span>Thinking...</span>`;
+
+            try {
+                const res = await fetch(`${API_BASE}/ai/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ patient_id: patientId, prompt: prompt })
+                });
+                const data = await res.json();
+                const aiReply = data.response ? data.response.replace(/\\n/g, '<br>') : (data.message || 'No response from server');
+
+                chatBox.innerHTML += `
+                    <div class="flex gap-3 items-start bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                        <i class="fa-solid fa-heart-pulse text-rose-500 mt-1"></i>
+                        <div class="flex-1">
+                            <p class="font-semibold text-xs text-rose-400">AI LIFE OS</p>
+                            <div class="text-slate-300 text-sm mt-1 leading-relaxed">${aiReply}</div>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                chatBox.innerHTML += `<div class="text-rose-400 text-xs p-2">Error connecting to server.</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>Ask AI</span> <i class="fa-solid fa-paper-plane text-xs"></i>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+
+        window.onload = fetchPatients;
+    </script>
+</body>
+</html>
+    """
