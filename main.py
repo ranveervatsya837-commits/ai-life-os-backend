@@ -305,21 +305,12 @@ Question:
 
         try:
             response = client.chat.completions.create(
-                model="llama3-8b-8192",
+                model="gemma2-9b-it",
                 messages=messages
             )
             return response.choices[0].message.content
         except Exception as e:
             return f"AI Processing Error: {str(e)}"
-    try:
-        response = client.chat.completions.create(
-            model="gemma2-9b-it",
-            messages=messages
-        )
-            return response.choices[0].message.content
-        except Exception as e:
-            return f"AI Processing Error: {str(e)}"
-
 # ----------------- AUTH ENDPOINTS ----------------- #
 @app.post("/register")
 def register(user: RegisterUser):
