@@ -305,9 +305,8 @@ Question:
 
         try:
             response = client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=messages
-            )
+                model="llama3-8b-8192",
+                messages=messages,
             return response.choices[0].message.content
         except Exception as e:
             return f"AI Processing Error: {str(e)}"
