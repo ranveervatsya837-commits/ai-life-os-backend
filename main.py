@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from database import get_connection
 
 from auth import (
@@ -30,20 +30,17 @@ import time
 import uuid
 from fastapi.responses import FileResponse
 
+
+
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://ai-life-os-frontend-ayush-ddee.vercel.app",
-        "*"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
+)
 
 class AIRequest(BaseModel):
     patient_id: int
