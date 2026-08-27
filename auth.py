@@ -25,8 +25,7 @@ pwd_context = CryptContext(
 
 
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super_secret_temporary_key_change_in_prod_12345")
 ALGORITHM = os.getenv(
     "JWT_ALGORITHM",
     "HS256"
