@@ -310,3 +310,69 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
 }
+/* =====================================================
+   MOBILE RESPONSIVE FIX (ALL SCREENS <= 850px)
+===================================================== */
+@media screen and (max-width: 850px) {
+  /* 1. Full viewport auto-fit */
+  html, body {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* 2. Main layout wrap (Sidebar aur Content ko ek ke niche ek karna) */
+  .app-container, .main-layout, .dashboard-container, div[style*="display: flex"] {
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 3. Sidebar ko Top Navbar me convert karna */
+  .sidebar, nav, div[style*="width: 250px"], div[style*="width: 20%"] {
+    width: 100% !important;
+    min-width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 12px 6px !important;
+    margin-bottom: 15px !important;
+  }
+
+  .sidebar button, .sidebar a, nav button {
+    flex: 1 1 40% !important;
+    padding: 10px !important;
+    font-size: 13px !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+
+  /* 4. Stats Counter Cards (2 in one row) */
+  .stats-grid, .cards-container, div[style*="grid-template-columns"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  /* 5. Sabhi Inner Cards ko 100% full width */
+  .card, .section, div[style*="border"], div[style*="background"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 12px !important;
+  }
+
+  /* 6. Inputs & Selects full touch-target */
+  input, select, textarea, button {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 16px !important; /* Prevents auto-zoom on mobile */
+  }
+}
