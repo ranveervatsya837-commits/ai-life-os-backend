@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import "./style.css";
 
+const API_BASE_URL = "https://ai-life-os-backend-1.onrender.com";
+
 export default function App() {
   const [stats, setStats] = useState(null)
   const [patients, setPatients] = useState([])
@@ -85,6 +87,7 @@ export default function App() {
   const [registerName, setRegisterName] = useState('')
   const [editName, setEditName] = useState('')
   const [editEmail, setEditEmail] = useState('')
+  const [registerPhone, setRegisterPhone] = useState('')
 
   // Doctor & Analytics States
   const [doctorSpecialization, setDoctorSpecialization] = useState('')
@@ -92,28 +95,28 @@ export default function App() {
   const [adminAnalytics, setAdminAnalytics] = useState(null)
 
   useEffect(() => {
-    fetch('http://localhost:8000/patients')
+    fetch(`${API_BASE_URL}/patients`)
       .then((res) => res.json())
       .then((data) => setPatients(Array.isArray(data) ? data : []))
       .catch((err) => console.error(err))
 
-    fetch('http://localhost:8000/dashboard/stats')
+    fetch(`${API_BASE_URL}/dashboard/stats`)
       .then((res) => res.json())
       .then((data) => setStats(data))
       .catch((err) => console.error(err))
 
-    fetch('http://localhost:8000/patients/4/health-score')
+    fetch(`${API_BASE_URL}/patients/4/health-score`)
       .then((res) => res.json())
       .then((data) => setHealthData(data))
       .catch((err) => console.error(err))
 
-    fetch('http://localhost:8000/appointments')
+    fetch(`${API_BASE_URL}/appointments`)
       .then((res) => res.json())
       .then((data) => setAppointments(Array.isArray(data) ? data : []))
       .catch((err) => console.error(err))
 
     if (token) {
-      fetch('http://localhost:8000/me', {
+      fetch(`${API_BASE_URL}/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
@@ -128,11 +131,11 @@ export default function App() {
       return
     }
 
-    fetch(`http://localhost:8000/patients/${selectedPatient.id}/medical-records`)
+    fetch(`${API_BASE_URL}/patients/${selectedPatient.id}/medical-records`)
       .then((res) => res.json())
       .then((data) => {
         setMedicalRecords(Array.isArray(data) ? data : [])
-        fetch(`http://localhost:8000/patients/${selectedPatient.id}/prescriptions`)
+        fetch(`${API_BASE_URL}/patients/${selectedPatient.id}/prescriptions`)
           .then((res) => res.json())
           .then((pData) => setPrescriptions(Array.isArray(pData) ? pData : []))
           .catch(() => setPrescriptions([]))
@@ -141,31 +144,31 @@ export default function App() {
   }, [selectedPatient])
 
   const searchDoctors = async (specOverride) => {
-  const specToSearch = specOverride || doctorSpecialization
-  if (!specToSearch.trim()) return alert('Please enter or select a specialization')
+    const specToSearch = specOverride || doctorSpecialization
+    if (!specToSearch.trim()) return alert('Please enter or select a specialization')
 
-  try {
-    const res = await fetch(`http://localhost:8000/doctors/search/${encodeURIComponent(specToSearch.trim())}`)
-    const data = await res.json()
-    console.log('Search Doctors Response:', data)
+    try {
+      const res = await fetch(`${API_BASE_URL}/doctors/search/${encodeURIComponent(specToSearch.trim())}`)
+      const data = await res.json()
+      console.log('Search Doctors Response:', data)
 
-    if (Array.isArray(data)) {
-      setDoctorsList(data)
-    } else if (data.doctors && Array.isArray(data.doctors)) {
-      setDoctorsList(data.doctors)
-    } else {
-      setDoctorsList([])
+      if (Array.isArray(data)) {
+        setDoctorsList(data)
+      } else if (data.doctors && Array.isArray(data.doctors)) {
+        setDoctorsList(data.doctors)
+      } else {
+        setDoctorsList([])
+      }
+    } catch (err) {
+      console.error('Error searching doctors:', err)
+      alert('Error connecting to doctors search API')
     }
-  } catch (err) {
-    console.error('Error searching doctors:', err)
-    alert('Error connecting to doctors search API')
   }
-}
 
   const deleteDoctor = async (doctorId) => {
     if (!window.confirm('Delete doctor?')) return
     try {
-      const res = await fetch(`http://localhost:8000/doctors/${doctorId}`, { method: 'DELETE' })
+      const res = await fetch(`${API_BASE_URL}/doctors/${doctorId}`, { method: 'DELETE' })
       if (res.ok) {
         alert('Doctor deleted ✅')
         setDoctorsList(doctorsList.filter((d) => (d.id || d._id) !== doctorId))
@@ -179,7 +182,7 @@ export default function App() {
     const newFee = prompt(`Update fee for ${currentName}:`, currentFee)
     if (!newFee) return
     try {
-      const res = await fetch(`http://localhost:8000/doctors/${doctorId}`, {
+      const res = await fetch(`${API_BASE_URL}/doctors/${doctorId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fee: Number(newFee) }),
@@ -195,7 +198,7 @@ export default function App() {
 
   const loadAdminAnalytics = async () => {
     try {
-      const res = await fetch('http://localhost:8000/admin/analytics')
+      const res = await fetch(`${API_BASE_URL}/admin/analytics`)
       const data = await res.json()
       setAdminAnalytics(data)
     } catch (err) {
@@ -205,12 +208,12 @@ export default function App() {
 
   const addPatient = async () => {
     try {
-      await fetch('http://localhost:8000/patients', {
+      await fetch(`${API_BASE_URL}/patients`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newPatient, age: Number(newPatient.age) }),
       })
-      const res = await fetch('http://localhost:8000/patients')
+      const res = await fetch(`${API_BASE_URL}/patients`)
       const data = await res.json()
       setPatients(Array.isArray(data) ? data : [])
       setNewPatient({ name: '', age: '', gender: '', blood_group: '', phone: '', address: '' })
@@ -222,21 +225,27 @@ export default function App() {
 
   const login = async () => {
     try {
-      const response = await fetch('http://localhost:8000/login', {
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
       const data = await response.json()
-      if (data.access_token) {
+      if (response.ok && data.access_token) {
         localStorage.setItem('token', data.access_token)
         setToken(data.access_token)
         alert('Login Successful ✅')
       } else {
-        alert(data.message || 'Login failed')
+        const errorMsg = typeof data.detail === 'string'
+          ? data.detail
+          : Array.isArray(data.detail)
+            ? data.detail[0]?.msg
+            : data.message || 'Login failed ❌'
+        alert(errorMsg)
       }
     } catch (error) {
       console.error(error)
+      alert('Login Error ❌')
     }
   }
 
@@ -246,18 +255,33 @@ export default function App() {
       return
     }
     try {
-      const response = await fetch('http://localhost:8000/register', {
+      const response = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: registerName, email, password }),
+        body: JSON.stringify({
+          name: registerName,
+          email,
+          password,
+          phone: registerPhone || "9999999999"
+        }),
       })
       const data = await response.json()
-      setEmail('')
-      setPassword('')
-      setConfirmPassword('')
-      alert(data.message || 'Registered Successfully')
-      setShowRegister(false)
-      setRegisterName('')
+      if (response.ok) {
+        setEmail('')
+        setPassword('')
+        setConfirmPassword('')
+        setRegisterPhone('')
+        alert(data.message || 'Registered Successfully ✅')
+        setShowRegister(false)
+        setRegisterName('')
+      } else {
+        const errorMsg = typeof data.detail === 'string'
+          ? data.detail
+          : Array.isArray(data.detail)
+            ? data.detail[0]?.msg
+            : data.message || 'Registration Failed ❌'
+        alert(errorMsg)
+      }
     } catch (error) {
       console.error(error)
       alert('Registration Failed ❌')
@@ -274,7 +298,7 @@ export default function App() {
     setPrompt('')
     setAiLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/ai/chat', {
+      const response = await fetch(`${API_BASE_URL}/ai/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patient_id: selectedPatient?.id, prompt: currentPrompt }),
@@ -312,7 +336,7 @@ export default function App() {
   const deletePatient = async (id) => {
     if (!window.confirm('Are you sure you want to delete this patient?')) return
     try {
-      await fetch(`http://localhost:8000/patients/${id}`, { method: 'DELETE' })
+      await fetch(`${API_BASE_URL}/patients/${id}`, { method: 'DELETE' })
       setPatients(patients.filter((p) => p.id !== id))
       if (selectedPatient && selectedPatient.id === id) setSelectedPatient(null)
       alert('Patient Deleted ✅')
@@ -323,7 +347,7 @@ export default function App() {
 
   const updatePatient = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/patients/${selectedPatient.id}`, {
+      const response = await fetch(`${API_BASE_URL}/patients/${selectedPatient.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(selectedPatient),
@@ -340,12 +364,12 @@ export default function App() {
   const saveMedicalRecord = async () => {
     if (!selectedPatient) return alert('Please select a patient')
     try {
-      await fetch('http://localhost:8000/medical-records', {
+      await fetch(`${API_BASE_URL}/medical-records`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patient_id: selectedPatient.id, ...newMedicalRecord }),
       })
-      const res = await fetch(`http://localhost:8000/patients/${selectedPatient.id}/medical-records`)
+      const res = await fetch(`${API_BASE_URL}/patients/${selectedPatient.id}/medical-records`)
       const updated = await res.json()
       setMedicalRecords(Array.isArray(updated) ? updated : [])
       setNewMedicalRecord({ symptoms: '', diagnosis: '', treatment: '', doctor_notes: '' })
@@ -358,12 +382,12 @@ export default function App() {
   const savePrescription = async () => {
     if (!selectedPatient) return alert('Please select a patient')
     try {
-      await fetch('http://localhost:8000/prescriptions', {
+      await fetch(`${API_BASE_URL}/prescriptions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patient_id: selectedPatient.id, ...newPrescription }),
       })
-      const res = await fetch(`http://localhost:8000/patients/${selectedPatient.id}/prescriptions`)
+      const res = await fetch(`${API_BASE_URL}/patients/${selectedPatient.id}/prescriptions`)
       const updated = await res.json()
       setPrescriptions(Array.isArray(updated) ? updated : [])
       setNewPrescription({ medicine: '', dosage: '', duration: '', instructions: '' })
@@ -375,12 +399,12 @@ export default function App() {
 
   const addAppointment = async () => {
     try {
-      await fetch('http://localhost:8000/appointments', {
+      await fetch(`${API_BASE_URL}/appointments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newAppointment, fee: Number(newAppointment.fee) }),
       })
-      const res = await fetch('http://localhost:8000/appointments')
+      const res = await fetch(`${API_BASE_URL}/appointments`)
       const updated = await res.json()
       setAppointments(Array.isArray(updated) ? updated : [])
       setNewAppointment({ id: '', patient: '', doctor: '', hospital: '', date: '', time: '', fee: '' })
@@ -393,7 +417,7 @@ export default function App() {
   const loadTimeline = async () => {
     if (!selectedPatient) return
     try {
-      const response = await fetch(`http://localhost:8000/patients/${selectedPatient.id}/timeline`)
+      const response = await fetch(`${API_BASE_URL}/patients/${selectedPatient.id}/timeline`)
       const data = await response.json()
       setTimelineData(data.timeline || [])
     } catch (error) {
@@ -405,7 +429,7 @@ export default function App() {
     if (!selectedPatient) return
     try {
       setAiSummaryLoading(true)
-      const response = await fetch(`http://localhost:8000/patients/${selectedPatient.id}/ai-summary`)
+      const response = await fetch(`${API_BASE_URL}/patients/${selectedPatient.id}/ai-summary`)
       const data = await response.json()
       setAiSummary(typeof data === 'string' ? data : data.summary || JSON.stringify(data, null, 2))
     } catch (error) {
@@ -419,7 +443,7 @@ export default function App() {
   const loadHealthSummary = async () => {
     if (!selectedPatient) return
     try {
-      const response = await fetch(`http://localhost:8000/patients/${selectedPatient.id}/health-summary`)
+      const response = await fetch(`${API_BASE_URL}/patients/${selectedPatient.id}/health-summary`)
       const data = await response.json()
       setHealthSummary(data)
     } catch (error) {
@@ -430,7 +454,7 @@ export default function App() {
   const loadDoctorNotes = async () => {
     if (!selectedPatient) return
     try {
-      const response = await fetch(`http://localhost:8000/patients/${selectedPatient.id}/doctor-notes`)
+      const response = await fetch(`${API_BASE_URL}/patients/${selectedPatient.id}/doctor-notes`)
       const data = await response.json()
       setDoctorNotes(data.doctor_notes || '')
     } catch (error) {
@@ -441,7 +465,7 @@ export default function App() {
   const loadNotes = async () => {
     if (!selectedPatient) return alert('Select a patient first')
     try {
-      const response = await fetch(`http://localhost:8000/notes/${selectedPatient.id}`)
+      const response = await fetch(`${API_BASE_URL}/notes/${selectedPatient.id}`)
       const data = await response.json()
       setNotes(data.notes || [])
     } catch (error) {
@@ -452,7 +476,7 @@ export default function App() {
   const createNote = async () => {
     if (!selectedPatient) return alert('Select a patient first')
     try {
-      await fetch('http://localhost:8000/notes', {
+      await fetch(`${API_BASE_URL}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patient_id: selectedPatient.id, title: newNote.title, content: newNote.content }),
@@ -466,7 +490,7 @@ export default function App() {
 
   const deleteNote = async (noteId) => {
     try {
-      await fetch(`http://localhost:8000/notes/${noteId}`, { method: 'DELETE' })
+      await fetch(`${API_BASE_URL}/notes/${noteId}`, { method: 'DELETE' })
       loadNotes()
     } catch (error) {
       console.error(error)
@@ -476,7 +500,7 @@ export default function App() {
   const loadTimelineSummary = async () => {
     if (!selectedPatient) return
     try {
-      const response = await fetch(`http://localhost:8000/patients/${selectedPatient.id}/timeline-summary`)
+      const response = await fetch(`${API_BASE_URL}/patients/${selectedPatient.id}/timeline-summary`)
       const data = await response.json()
       setTimelineSummary(data.summary || '')
     } catch (error) {
@@ -490,7 +514,7 @@ export default function App() {
 
   const deleteAppointment = async (id) => {
     try {
-      await fetch(`http://localhost:8000/appointments/${id}`, { method: 'DELETE' })
+      await fetch(`${API_BASE_URL}/appointments/${id}`, { method: 'DELETE' })
       setAppointments(appointments.filter((a) => a.id !== id))
       alert('Appointment Deleted ✅')
     } catch (error) {
@@ -500,7 +524,7 @@ export default function App() {
 
   const changePassword = async () => {
     try {
-      const response = await fetch('http://localhost:8000/change-password', {
+      const response = await fetch(`${API_BASE_URL}/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user?.email, old_password: oldPassword, new_password: newPasswordValue }),
@@ -516,7 +540,7 @@ export default function App() {
 
   const verifyEmail = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/verify-email?email=${user.email}`, { method: 'POST' })
+      const response = await fetch(`${API_BASE_URL}/verify-email?email=${user.email}`, { method: 'POST' })
       const data = await response.json()
       alert(data.message)
       setUser({ ...user, is_verified: 1 })
@@ -527,7 +551,7 @@ export default function App() {
 
   const updateProfile = async () => {
     try {
-      const response = await fetch('http://localhost:8000/profile', {
+      const response = await fetch(`${API_BASE_URL}/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ current_email: user.email, name: editName || user.name, email: editEmail || user.email }),
@@ -550,12 +574,20 @@ export default function App() {
       <div className="panel" style={{ maxWidth: '400px', margin: '100px auto' }}>
         <h2>{showRegister ? '📝 Register' : '🔐 Login'}</h2>
         {showRegister && (
-          <input
-            type="text"
-            placeholder="Full Name"
-            value={registerName}
-            onChange={(e) => setRegisterName(e.target.value)}
-          />
+          <>
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={registerName}
+              onChange={(e) => setRegisterName(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Phone Number"
+              value={registerPhone}
+              onChange={(e) => setRegisterPhone(e.target.value)}
+            />
+          </>
         )}
         <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -733,13 +765,13 @@ export default function App() {
                     key={patient.id}
                     onClick={() => {
                       setSelectedPatient(patient)
-                      fetch(`http://localhost:8000/patients/${patient.id}/health-score`)
+                      fetch(`${API_BASE_URL}/patients/${patient.id}/health-score`)
                         .then((res) => res.json())
                         .then((data) => setHealthScore(data))
-                      fetch(`http://localhost:8000/patients/${patient.id}/risk`)
+                      fetch(`${API_BASE_URL}/patients/${patient.id}/risk`)
                         .then((res) => res.json())
                         .then((data) => setRiskData(data))
-                      fetch(`http://localhost:8000/patients/${patient.id}/recommendations`)
+                      fetch(`${API_BASE_URL}/patients/${patient.id}/recommendations`)
                         .then((res) => res.json())
                         .then((data) => setRecommendations(data.recommendations || []))
                     }}
@@ -1055,7 +1087,7 @@ export default function App() {
 
                     <button
                       onClick={() =>
-                        window.open(`http://localhost:8000/patients/${selectedPatient.id}/report`, '_blank')
+                        window.open(`${API_BASE_URL}/patients/${selectedPatient.id}/report`, '_blank')
                       }
                     >
                       📄 Download Patient Report
@@ -1444,16 +1476,16 @@ export default function App() {
                   setSelectedPatient(patient || null)
                   setPrompt('')
                   if (patient) {
-                    fetch(`http://localhost:8000/patients/${patient.id}/health-score`)
+                    fetch(`${API_BASE_URL}/patients/${patient.id}/health-score`)
                       .then((res) => res.json())
                       .then((data) => setHealthScore(data))
-                    fetch(`http://localhost:8000/patients/${patient.id}/risk`)
+                    fetch(`${API_BASE_URL}/patients/${patient.id}/risk`)
                       .then((res) => res.json())
                       .then((data) => setRiskData(data))
-                    fetch(`http://localhost:8000/patients/${patient.id}/recommendations`)
+                    fetch(`${API_BASE_URL}/patients/${patient.id}/recommendations`)
                       .then((res) => res.json())
                       .then((data) => setRecommendations(data.recommendations || []))
-                    fetch(`http://localhost:8000/ai/history/${patient.id}`)
+                    fetch(`${API_BASE_URL}/ai/history/${patient.id}`)
                       .then((res) => res.json())
                       .then((data) => {
                         const chats = []

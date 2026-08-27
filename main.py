@@ -793,32 +793,56 @@ def delete_appointment(appointment_id: str):
 
 @app.post("/register")
 def register(user: RegisterUser):
-        connection = get_connection()
-        cursor = connection.cursor()
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        # Check if table has created_at column, agar nahi hai toh create karein
+        cursor.execute("""
+                       CREATE TABLE IF NOT EXISTS auth_users
+                       (
+                           id
+                           INTEGER
+                           PRIMARY
+                           KEY
+                           AUTOINCREMENT,
+                           name
+                           TEXT,
+                           phone
+                           TEXT,
+                           email
+                           TEXT
+                           UNIQUE,
+                           password
+                           TEXT,
+                           role
+                           TEXT
+                           DEFAULT
+                           'user',
+                           created_at
+                           TEXT
+                       )
+                       """)
+
+        # Missing columns add safe fallback
+        for col in ["phone", "created_at", "role"]:
+            try:
+                cursor.execute(f"ALTER TABLE auth_users ADD COLUMN {col} TEXT")
+            except:
+                pass
 
         hashed_password = hash_password(user.password)
-        cursor.execute(
-            """
-            SELECT *
-            FROM auth_users
-            WHERE email = ?
-            """,
-            (user.email,)
-        )
 
+        cursor.execute("SELECT * FROM auth_users WHERE email = ?", (user.email,))
         existing_user = cursor.fetchone()
 
         if existing_user:
-            connection.close()
+            return {"message": "Email already registered"}
 
-            return {
-                "message": "Email already registered"
-            }
         cursor.execute(
             """
-            INSERT INTO auth_users
-                (name, email, password, created_at, role, phone)
-            VALUES (?, ?, ?, ?, ?,?)
+            INSERT INTO auth_users (name, email, password, created_at, role, phone)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
                 user.name,
@@ -826,17 +850,17 @@ def register(user: RegisterUser):
                 hashed_password,
                 datetime.now().isoformat(),
                 "user",
-                user.phone
-
+                getattr(user, "phone", "")
             )
         )
-
         connection.commit()
-        connection.close()
+        return {"message": "User registered successfully"}
 
-        return {
-            "message": "User registered successfully"
-        }
+    except Exception as e:
+        connection.rollback()
+        return {"error": str(e), "message": "Registration Failed"}
+    finally:
+        connection.close()
 @app.post("/login")
 def login(user: LoginUser):
 
